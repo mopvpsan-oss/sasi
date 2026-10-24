@@ -45,7 +45,7 @@
                 <i class="fa-solid me-2 fa-boxes-stacked text-2xl sm:text-3xl"></i>
                 <div>
                     <h1 class="text-xl sm:text-2xl font-bold">สต๊อกสินค้าศศิ</h1>
-                    <p class="text-indigo-200 text-xs sm:text-sm">ระบบจัดการสต๊อกและคำนวณรายได้ (Real-time)</p>
+                    <p class="text-indigo-200 text-xs sm:text-sm">ระบบจัดการสต๊อกและจัดลำดับสินค้า (Real-time)</p>
                 </div>
             </div>
             <div class="flex space-x-2">
@@ -129,7 +129,7 @@
                                 <th class="py-3.5 px-4 text-center bg-emerald-100/50 text-emerald-800">รายได้ (บาท)</th>
                                 <th class="py-3.5 px-4 text-center bg-rose-50/50 text-rose-700">เสีย</th>
                                 <th class="py-3.5 px-4">หมายเหตุ</th>
-                                <th class="py-3.5 px-4 text-center no-print w-20">จัดการ</th>
+                                <th class="py-3.5 px-4 text-center no-print w-28">จัดการ / ย้าย</th>
                             </tr>
                         </thead>
                         <tbody id="inventoryBody" class="divide-y divide-slate-200 text-sm">
@@ -396,6 +396,35 @@
             }
         }
 
+        function moveItem(index, direction) {
+            const search = document.getElementById('searchInput').value.toLowerCase();
+            const category = document.getElementById('categoryFilter').value;
+
+            // กรองสินค้าตามหน้าจอปัจจุบันเพื่อให้การสลับตำแหน่งสอดคล้องกับสิ่งที่แสดงอยู่
+            const filtered = inventory.filter(item => {
+                const matchSearch = item.name.toLowerCase().includes(search) || (item.note && item.note.toLowerCase().includes(search));
+                const matchCat = (category === 'ALL') || (item.category === category);
+                return matchSearch && matchCat;
+            });
+
+            const targetIndex = index + direction;
+            if (targetIndex < 0 || targetIndex >= filtered.length) return;
+
+            const item1 = filtered[index];
+            const item2 = filtered[targetIndex];
+
+            const globalIndex1 = inventory.findIndex(i => i.id === item1.id);
+            const globalIndex2 = inventory.findIndex(i => i.id === item2.id);
+
+            // สลับตำแหน่งในอาเรย์หลัก
+            const temp = inventory[globalIndex1];
+            inventory[globalIndex1] = inventory[globalIndex2];
+            inventory[globalIndex2] = temp;
+
+            saveData();
+            renderTable();
+        }
+
         function logHistory(itemName, actionText) {
             const today = new Date().toISOString().slice(0, 10);
             const timeStr = new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
@@ -467,7 +496,7 @@
                         <input type="number" value="${item.stock || 0}" onchange="setQty(${item.id}, 'stock', this.value)" class="w-16 text-center border border-slate-200 rounded py-1 px-1 text-sm font-semibold text-blue-700 bg-white focus:outline-none focus:ring-1 focus:ring-blue-500">
                     </td>
 
-                    <!-- เบิก (ปุ่ม + ใส่ตัวเลขเพิ่มเข้าคงเหลือและเบิก / ปุ่ม - ลดคงเหลือและเบิก) -->
+                    <!-- เบิก -->
                     <td class="py-3 px-2 text-center bg-amber-50/30">
                         <div class="inline-flex items-center gap-1">
                             <button onclick="handleReduceWithdrawPrompt(${item.id})" class="no-print w-6 h-6 rounded bg-slate-200 text-slate-600 hover:bg-slate-300 flex items-center justify-center text-xs" title="ลดการเบิก">-</button>
@@ -476,7 +505,7 @@
                         </div>
                     </td>
 
-                    <!-- ขาย (ลดคงเหลือและเพิ่มขาย) -->
+                    <!-- ขาย -->
                     <td class="py-3 px-2 text-center bg-emerald-50/30">
                         <div class="inline-flex items-center gap-1">
                             <button onclick="handleSoldPrompt(${item.id})" class="no-print w-6 h-6 rounded bg-emerald-100 text-emerald-600 hover:bg-emerald-200 flex items-center justify-center text-xs" title="บันทึกการขาย">+</button>
@@ -489,7 +518,7 @@
                         ${itemRevenue.toLocaleString()} ฿
                     </td>
 
-                    <!-- เสีย (ลดคงเหลือและเพิ่มเสีย) -->
+                    <!-- เสีย -->
                     <td class="py-3 px-2 text-center bg-rose-50/30">
                         <div class="inline-flex items-center gap-1">
                             <button onclick="handleDamagedPrompt(${item.id})" class="no-print w-6 h-6 rounded bg-rose-100 text-rose-600 hover:bg-rose-200 flex items-center justify-center text-xs" title="บันทึกสินค้าเสีย">+</button>
@@ -502,9 +531,13 @@
                         <input type="text" value="${item.note || ''}" placeholder="บันทึกย่อ..." onchange="updateNote(${item.id}, this.value)" class="w-full border-b border-transparent hover:border-slate-300 focus:border-indigo-500 bg-transparent px-1 py-1 text-xs text-slate-600 focus:outline-none">
                     </td>
 
-                    <!-- ลบ -->
+                    <!-- จัดการ / ย้าย -->
                     <td class="py-3 px-4 text-center no-print">
-                        <button onclick="deleteItem(${item.id})" class="text-slate-300 hover:text-rose-500 transition px-2 py-1" title="ลบรายการ"><i class="fa-solid fa-trash-can"></i></button>
+                        <div class="inline-flex items-center gap-1">
+                            <button onclick="moveItem(${index}, -1)" class="w-6 h-6 rounded bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center text-xs" title="เลื่อนขึ้น"><i class="fa-solid fa-arrow-up"></i></button>
+                            <button onclick="moveItem(${index}, 1)" class="w-6 h-6 rounded bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center text-xs" title="เลื่อนลง"><i class="fa-solid fa-arrow-down"></i></button>
+                            <button onclick="deleteItem(${item.id})" class="text-slate-300 hover:text-rose-500 transition px-1 py-1 ml-1" title="ลบรายการ"><i class="fa-solid fa-trash-can"></i></button>
+                        </div>
                     </td>
                 `;
                 tbody.appendChild(tr);
@@ -513,7 +546,6 @@
             updateSummary();
         }
 
-        // กดปุ่ม + ที่ช่องเบิก -> ใส่ตัวเลขเพิ่มเข้าช่องเบิกและเพิ่มเข้าช่องคงเหลือ
         function handleAddWithdrawPrompt(id) {
             const item = inventory.find(i => i.id === id);
             if (!item) return;
@@ -533,7 +565,6 @@
             logHistory(item.name, `เบิกเพิ่ม +${qty} (ยอดเบิก: ${item.withdraw}, คงเหลือ: ${item.stock})`);
         }
 
-        // กดปุ่ม - ที่ช่องเบิก -> ใส่ตัวเลขเพื่อลดจากช่องเบิกและลดจากช่องคงเหลือ
         function handleReduceWithdrawPrompt(id) {
             const item = inventory.find(i => i.id === id);
             if (!item) return;
@@ -559,7 +590,6 @@
             logHistory(item.name, `ลดการเบิก -${actualReduce} (ยอดเบิก: ${item.withdraw}, คงเหลือ: ${item.stock})`);
         }
 
-        // บันทึกการขาย (+)
         function handleSoldPrompt(id) {
             const item = inventory.find(i => i.id === id);
             if (!item) return;
@@ -585,7 +615,6 @@
             logHistory(item.name, `ขายสินค้า +${actualSold} ชิ้น (ขายสะสม: ${item.sold}, คงเหลือ: ${item.stock})`);
         }
 
-        // บันทึกสินค้าเสีย (+)
         function handleDamagedPrompt(id) {
             const item = inventory.find(i => i.id === id);
             if (!item) return;
