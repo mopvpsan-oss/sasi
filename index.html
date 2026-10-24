@@ -10,6 +10,11 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Google Fonts (Kanit) -->
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Firebase SDK (Compat) -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+
     <style>
         body {
             font-family: 'Kanit', sans-serif;
@@ -40,7 +45,7 @@
                 <i class="fa-solid me-2 fa-boxes-stacked text-2xl sm:text-3xl"></i>
                 <div>
                     <h1 class="text-xl sm:text-2xl font-bold">สต๊อกสินค้าศศิ</h1>
-                    <p class="text-indigo-200 text-xs sm:text-sm">ตารางบันทึกสต๊อก คลังสินค้า เบิก ขาย เสีย และหมายเหตุ</p>
+                    <p class="text-indigo-200 text-xs sm:text-sm">ตารางบันทึกสต๊อก คลังสินค้า เบิก ขาย เสีย และหมายเหตุ (Real-time)</p>
                 </div>
             </div>
             <div class="flex space-x-2">
@@ -177,8 +182,25 @@
 
     <!-- Script JavaScript -->
     <script>
-        // รหัสผ่านสำหรับการลบสินค้า
+        // รหัสผ่านสำหรับการลบและรีเซ็ตข้อมูล
         const DELETE_PASSWORD = "198444";
+
+        // ตั้งค่าการเชื่อมต่อ Firebase (เชื่อมต่อกับโปรเจกต์ sasi-stock ของคุณแล้ว)
+        const firebaseConfig = {
+            apiKey: "AIzaSyD8XOZUorFbWM0squR2IgV-n6Nar92syes",
+            authDomain: "sasi-stock.firebaseapp.com",
+            databaseURL: "https://sasi-stock-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "sasi-stock",
+            storageBucket: "sasi-stock.firebasestorage.app",
+            messagingSenderId: "1090344270260",
+            appId: "1:1090344270260:web:fb5399193ad671b034dae1",
+            measurementId: "G-73DVZW271Z"
+        };
+
+        // เริ่มต้นใช้งาน Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+        const stockRef = db.ref('inventory');
 
         // รายการสินค้าเริ่มต้น 61 รายการ
         const defaultProducts = [
@@ -246,30 +268,33 @@
 
         let inventory = [];
 
-        // โหลดข้อมูลเริ่มต้น
+        // โหลดและฟังการเปลี่ยนแปลงข้อมูลแบบ Real-time จาก Firebase
         function initData() {
-            const saved = localStorage.getItem('inventoryData');
-            if (saved) {
-                inventory = JSON.parse(saved);
-            } else {
-                inventory = defaultProducts.map((p, idx) => ({
-                    id: idx + 1,
-                    name: p.name,
-                    category: p.category,
-                    stock: 0,
-                    withdraw: 0,
-                    sold: 0,
-                    damaged: 0,
-                    note: ""
-                }));
-                saveData();
-            }
-            renderTable();
+            stockRef.on('value', (snapshot) => {
+                const data = snapshot.val();
+                if (data) {
+                    inventory = data;
+                } else {
+                    // ถ้ายังไม่มีข้อมูลบน Cloud ให้สร้างข้อมูลเริ่มต้น 61 รายการ
+                    inventory = defaultProducts.map((p, idx) => ({
+                        id: idx + 1,
+                        name: p.name,
+                        category: p.category,
+                        stock: 0,
+                        withdraw: 0,
+                        sold: 0,
+                        damaged: 0,
+                        note: ""
+                    }));
+                    saveData();
+                }
+                renderTable();
+            });
         }
 
-        // บันทึกลง LocalStorage
+        // บันทึกข้อมูลขึ้น Firebase Realtime Database
         function saveData() {
-            localStorage.setItem('inventoryData', JSON.stringify(inventory));
+            stockRef.set(inventory);
             updateSummary();
         }
 
@@ -376,7 +401,6 @@
             if (item) {
                 item[field] = Math.max(0, (item[field] || 0) + delta);
                 saveData();
-                renderTable();
             }
         }
 
@@ -401,13 +425,11 @@
         // ลบรายการ (พร้อมระบบยืนยันรหัสผ่าน 198444)
         function deleteItem(id) {
             const password = prompt('กรุณากรอกรหัสผ่านเพื่อยืนยันการลบสินค้า:');
-            
-            if (password === null) return; // กด Cancel
+            if (password === null) return;
 
             if (password === DELETE_PASSWORD) {
                 inventory = inventory.filter(i => i.id !== id);
                 saveData();
-                renderTable();
                 alert('ลบรายการเรียบร้อยแล้ว');
             } else {
                 alert('รหัสผ่านไม่ถูกต้อง! ไม่สามารถลบรายการได้');
@@ -441,21 +463,20 @@
 
             inventory.unshift(newItem);
             saveData();
-            renderTable();
             closeAddModal();
         }
 
         // รีเซ็ตข้อมูลเป็นค่าเริ่มต้น (พร้อมระบบยืนยันรหัสผ่าน 198444)
         function resetData() {
             const password = prompt('กรุณากรอกรหัสผ่านเพื่อยืนยันการรีเซ็ตข้อมูลทั้งหมด:');
-            
-            if (password === null) return; // กด Cancel
+            if (password === null) return;
 
             if (password === DELETE_PASSWORD) {
                 if (confirm('คุณแน่ใจหรือไม่ว่าต้องการรีเซ็ตรายการสินค้ากลับเป็นค่าเริ่มต้น?')) {
-                    localStorage.removeItem('inventoryData');
-                    initData();
-                    alert('รีเซ็ตข้อมูลเรียบร้อยแล้ว');
+                    stockRef.remove().then(() => {
+                        initData();
+                        alert('รีเซ็ตข้อมูลเรียบร้อยแล้ว');
+                    });
                 }
             } else {
                 alert('รหัสผ่านไม่ถูกต้อง! ไม่สามารถรีเซ็ตข้อมูลได้');
@@ -475,7 +496,7 @@
             const url = URL.createObjectURL(blob);
             const link = document.createElement("a");
             link.setAttribute("href", url);
-            link.setAttribute("download", `สต๊อกสินค้า_${new Date().toISOString().slice(0, 10)}.csv`);
+            link.setAttribute("download", `สต๊อกสินค้า_ศศิ_${new Date().toISOString().slice(0, 10)}.csv`);
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
