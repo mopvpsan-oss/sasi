@@ -45,7 +45,7 @@
                 <i class="fa-solid me-2 fa-boxes-stacked text-2xl sm:text-3xl"></i>
                 <div>
                     <h1 class="text-xl sm:text-2xl font-bold">สต๊อกสินค้าศศิ</h1>
-                    <p class="text-indigo-200 text-xs sm:text-sm">ระบบจัดการสต๊อกและคำนวณรายได้จากการขาย (Real-time)</p>
+                    <p class="text-indigo-200 text-xs sm:text-sm">ระบบจัดการสต๊อกและคำนวณรายได้ (Real-time)</p>
                 </div>
             </div>
             <div class="flex space-x-2">
@@ -97,12 +97,11 @@
                     <div class="flex gap-2 items-center overflow-x-auto pb-1 md:pb-0">
                         <select id="categoryFilter" onchange="renderTable()" class="border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-white">
                             <option value="ALL">หมวดหมู่ทั้งหมด</option>
-                            <option value="ผลไม้แปรรูป">ผลไม้แปรรูป</option>
-                            <option value="ผลไม้สด/ดอง">ผลไม้สด/ดอง</option>
-                            <option value="เครื่องปรุง/พริกเกลือ">เครื่องปรุง/พริกเกลือ</option>
-                            <option value="บรรจุภัณฑ์/อุปกรณ์">บรรจุภัณฑ์/อุปกรณ์</option>
-                            <option value="อื่นๆ">อื่นๆ</option>
                         </select>
+
+                        <button onclick="openCategoryModal()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition flex items-center gap-1" title="จัดการหมวดหมู่">
+                            <i class="fa-solid fa-folder-plus"></i> จัดการหมวดหมู่
+                        </button>
 
                         <button onclick="openAddModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition flex items-center gap-1">
                             <i class="fa-solid fa-plus"></i> เพิ่มรายการ
@@ -168,11 +167,7 @@
                 <div>
                     <label class="block text-xs font-medium text-slate-600 mb-1">หมวดหมู่</label>
                     <select id="newItemCategory" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-white">
-                        <option value="ผลไม้แปรรูป">ผลไม้แปรรูป</option>
-                        <option value="ผลไม้สด/ดอง">ผลไม้สด/ดอง</option>
-                        <option value="เครื่องปรุง/พริกเกลือ">เครื่องปรุง/พริกเกลือ</option>
-                        <option value="บรรจุภัณฑ์/อุปกรณ์">บรรจุภัณฑ์/อุปกรณ์</option>
-                        <option value="อื่นๆ">อื่นๆ</option>
+                        <!-- Dynamic Categories -->
                     </select>
                 </div>
                 <div>
@@ -195,6 +190,31 @@
         </div>
     </div>
 
+    <!-- Modal for Managing Categories -->
+    <div id="categoryModal" class="fixed inset-0 bg-slate-900/50 hidden items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-xl max-w-sm w-full p-6 shadow-xl space-y-4">
+            <div class="flex justify-between items-center border-b pb-3">
+                <h3 class="text-lg font-bold text-slate-800">จัดการหมวดหมู่สินค้า</h3>
+                <button onclick="closeCategoryModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-xl"></i></button>
+            </div>
+            <div class="space-y-3">
+                <div class="flex gap-2">
+                    <input type="text" id="newCategoryName" placeholder="ชื่อหมวดหมู่ใหม่..." class="flex-1 border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                    <button onclick="handleAddCategory()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-2 rounded-lg text-sm font-medium transition">เพิ่ม</button>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-500 mb-1">หมวดหมู่ที่มีอยู่:</label>
+                    <div id="categoryListContainer" class="max-h-48 overflow-y-auto space-y-1 border border-slate-200 rounded-lg p-2 text-sm">
+                        <!-- Dynamic Category List -->
+                    </div>
+                </div>
+            </div>
+            <div class="flex justify-end pt-2 border-t">
+                <button onclick="closeCategoryModal()" class="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg text-sm">ปิด</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Script JavaScript -->
     <script>
         const DELETE_PASSWORD = "198444";
@@ -214,6 +234,9 @@
         const db = firebase.database();
         const stockRef = db.ref('inventory');
         const historyRef = db.ref('history');
+        const categoriesRef = db.ref('categories');
+
+        const defaultCategories = ["ผลไม้แปรรูป", "ผลไม้สด/ดอง", "เครื่องปรุง/พริกเกลือ", "บรรจุภัณฑ์/อุปกรณ์", "อื่นๆ"];
 
         const defaultProducts = [
             { name: "ลูกชิดเล็ก", category: "ผลไม้แปรรูป" }, { name: "บ๊วย", category: "ผลไม้แปรรูป" },
@@ -249,6 +272,7 @@
         ];
 
         let inventory = [];
+        let categories = [];
         let historyLogs = [];
 
         function getDefaultPrice(name) {
@@ -257,15 +281,22 @@
             if (name.includes("ผลไม้กล่อง 60")) return 60;
             if (name.includes("ผลไม้กล่อง 100")) return 100;
             if (name.includes("ผลไม้ถุง 20")) return 20;
-            
-            // ตั้งแต่ "ขิงอบแห้งใหญ่" ลงไปจนถึง "มะม่วงหวาน+สามรสใหญ่" ถ้าลงท้ายด้วย "ใหญ่" ให้เป็น 100 บาท
             if (name.includes("ใหญ่")) return 100;
-            
-            // ตั้งแต่ "มะม่วงหวาน+สามรสใหญ่" ขึ้นไป (หรือรายการทั่วไป) ให้เป็น 35 บาท
             return 35;
         }
 
         function initData() {
+            categoriesRef.on('value', (snapshot) => {
+                const data = snapshot.val();
+                if (data) {
+                    categories = data;
+                } else {
+                    categories = defaultCategories;
+                    categoriesRef.set(categories);
+                }
+                updateCategoryDropdowns();
+            });
+
             stockRef.on('value', (snapshot) => {
                 const data = snapshot.val();
                 if (data) {
@@ -300,6 +331,69 @@
         function saveData() {
             stockRef.set(inventory);
             updateSummary();
+        }
+
+        function updateCategoryDropdowns() {
+            const filterSelect = document.getElementById('categoryFilter');
+            const currentFilter = filterSelect.value;
+            filterSelect.innerHTML = `<option value="ALL">หมวดหมู่ทั้งหมด</option>`;
+            categories.forEach(cat => {
+                filterSelect.innerHTML += `<option value="${cat}">${cat}</option>`;
+            });
+            filterSelect.value = currentFilter;
+
+            const newItemCatSelect = document.getElementById('newItemCategory');
+            newItemCatSelect.innerHTML = '';
+            categories.forEach(cat => {
+                newItemCatSelect.innerHTML += `<option value="${cat}">${cat}</option>`;
+            });
+
+            const catListContainer = document.getElementById('categoryListContainer');
+            catListContainer.innerHTML = '';
+            categories.forEach((cat, index) => {
+                catListContainer.innerHTML += `
+                    <div class="flex justify-between items-center py-1 px-2 bg-slate-50 rounded mb-1">
+                        <span>${cat}</span>
+                        <button onclick="deleteCategory(${index})" class="text-rose-500 hover:text-rose-700 text-xs px-1"><i class="fa-solid fa-trash"></i></button>
+                    </div>
+                `;
+            });
+        }
+
+        function openCategoryModal() {
+            document.getElementById('categoryModal').classList.remove('hidden');
+            document.getElementById('categoryModal').classList.add('flex');
+        }
+
+        function closeCategoryModal() {
+            document.getElementById('categoryModal').classList.add('hidden');
+            document.getElementById('categoryModal').classList.remove('flex');
+            document.getElementById('newCategoryName').value = '';
+        }
+
+        function handleAddCategory() {
+            const catName = document.getElementById('newCategoryName').value.trim();
+            if (!catName) return;
+            if (categories.includes(catName)) {
+                alert("มีหมวดหมู่นี้อยู่แล้ว");
+                return;
+            }
+            categories.push(catName);
+            categoriesRef.set(categories);
+            document.getElementById('newCategoryName').value = '';
+            updateCategoryDropdowns();
+        }
+
+        function deleteCategory(index) {
+            if (categories.length <= 1) {
+                alert("ต้องมีหมวดหมู่อย่างน้อย 1 หมวดหมู่");
+                return;
+            }
+            if (confirm(`ต้องการลบหมวดหมู่ "${categories[index]}" หรือไม่?`)) {
+                categories.splice(index, 1);
+                categoriesRef.set(categories);
+                updateCategoryDropdowns();
+            }
         }
 
         function logHistory(itemName, actionText) {
@@ -370,21 +464,24 @@
 
                     <!-- คงเหลือ -->
                     <td class="py-3 px-2 text-center bg-blue-50/30">
+                        <input type="number" value="${item.stock || 0}" onchange="setQty(${item.id}, 'stock', this.value)" class="w-16 text-center border border-slate-200 rounded py-1 px-1 text-sm font-semibold text-blue-700 bg-white focus:outline-none focus:ring-1 focus:ring-blue-500">
+                    </td>
+
+                    <!-- เบิก (ปุ่ม + ใส่ตัวเลขเพิ่มเข้าคงเหลือและเบิก / ปุ่ม - ลดคงเหลือและเบิก) -->
+                    <td class="py-3 px-2 text-center bg-amber-50/30">
                         <div class="inline-flex items-center gap-1">
-                            <button onclick="handleReduceStock(${item.id})" class="no-print w-6 h-6 rounded bg-slate-200 text-slate-600 hover:bg-slate-300 flex items-center justify-center text-xs">-</button>
-                            <input type="number" value="${item.stock || 0}" onchange="setQty(${item.id}, 'stock', this.value)" class="w-14 text-center border border-slate-200 rounded py-1 px-1 text-sm font-semibold text-blue-700 bg-white focus:outline-none focus:ring-1 focus:ring-blue-500">
-                            <button onclick="handleAddStock(${item.id})" class="no-print w-6 h-6 rounded bg-blue-100 text-blue-600 hover:bg-blue-200 flex items-center justify-center text-xs">+</button>
+                            <button onclick="handleReduceWithdrawPrompt(${item.id})" class="no-print w-6 h-6 rounded bg-slate-200 text-slate-600 hover:bg-slate-300 flex items-center justify-center text-xs" title="ลดการเบิก">-</button>
+                            <input type="number" value="${item.withdraw || 0}" onchange="setQty(${item.id}, 'withdraw', this.value)" class="w-14 text-center border border-slate-200 rounded py-1 px-1 text-sm font-semibold text-amber-700 bg-white focus:outline-none focus:ring-1 focus:ring-amber-500">
+                            <button onclick="handleAddWithdrawPrompt(${item.id})" class="no-print w-6 h-6 rounded bg-amber-100 text-amber-600 hover:bg-amber-200 flex items-center justify-center text-xs" title="เบิกเพิ่ม">+</button>
                         </div>
                     </td>
 
-                    <!-- เบิก -->
-                    <td class="py-3 px-2 text-center bg-amber-50/30 font-semibold text-amber-700">
-                        ${item.withdraw || 0}
-                    </td>
-
-                    <!-- ขาย -->
-                    <td class="py-3 px-2 text-center bg-emerald-50/30 font-semibold text-emerald-700">
-                        ${item.sold || 0}
+                    <!-- ขาย (ลดคงเหลือและเพิ่มขาย) -->
+                    <td class="py-3 px-2 text-center bg-emerald-50/30">
+                        <div class="inline-flex items-center gap-1">
+                            <button onclick="handleSoldPrompt(${item.id})" class="no-print w-6 h-6 rounded bg-emerald-100 text-emerald-600 hover:bg-emerald-200 flex items-center justify-center text-xs" title="บันทึกการขาย">+</button>
+                            <span class="font-semibold text-emerald-700 w-10 text-center">${item.sold || 0}</span>
+                        </div>
                     </td>
 
                     <!-- รายได้ -->
@@ -392,9 +489,12 @@
                         ${itemRevenue.toLocaleString()} ฿
                     </td>
 
-                    <!-- เสีย -->
-                    <td class="py-3 px-2 text-center bg-rose-50/30 font-semibold text-rose-700">
-                        ${item.damaged || 0}
+                    <!-- เสีย (ลดคงเหลือและเพิ่มเสีย) -->
+                    <td class="py-3 px-2 text-center bg-rose-50/30">
+                        <div class="inline-flex items-center gap-1">
+                            <button onclick="handleDamagedPrompt(${item.id})" class="no-print w-6 h-6 rounded bg-rose-100 text-rose-600 hover:bg-rose-200 flex items-center justify-center text-xs" title="บันทึกสินค้าเสีย">+</button>
+                            <span class="font-semibold text-rose-700 w-10 text-center">${item.damaged || 0}</span>
+                        </div>
                     </td>
 
                     <!-- หมายเหตุ -->
@@ -413,35 +513,102 @@
             updateSummary();
         }
 
-        function handleAddStock(id) {
+        // กดปุ่ม + ที่ช่องเบิก -> ใส่ตัวเลขเพิ่มเข้าช่องเบิกและเพิ่มเข้าช่องคงเหลือ
+        function handleAddWithdrawPrompt(id) {
             const item = inventory.find(i => i.id === id);
-            if (item) {
-                item.stock = (item.stock || 0) + 1;
-                item.withdraw = (item.withdraw || 0) + 1;
-                saveData();
-                logHistory(item.name, "เบิกสินค้าเพิ่ม +1 (คงเหลือ: " + item.stock + ")");
-            }
-        }
+            if (!item) return;
 
-        function handleReduceStock(id) {
-            const item = inventory.find(i => i.id === id);
-            if (!item || (item.stock || 0) <= 0) {
-                alert("สินค้าคงเหลือเป็น 0 ไม่สามารถลดได้");
+            const input = prompt(`ระบุจำนวนที่ต้องการเบิกเพิ่มสำหรับ "${item.name}":`, "1");
+            if (input === null) return;
+
+            const qty = parseInt(input);
+            if (isNaN(qty) || qty <= 0) {
+                alert("กรุณากรอกตัวเลขที่มากกว่า 0");
                 return;
             }
 
-            const type = prompt("พิมพ์ '1' สำหรับการ [ขาย]\nพิมพ์ '2' สำหรับสินค้า [เสีย/ชำรุด]:", "1");
-            if (type === "1") {
-                item.stock -= 1;
-                item.sold = (item.sold || 0) + 1;
-                saveData();
-                logHistory(item.name, "ขายสินค้า -1 (คงเหลือ: " + item.stock + ")");
-            } else if (type === "2") {
-                item.stock -= 1;
-                item.damaged = (item.damaged || 0) + 1;
-                saveData();
-                logHistory(item.name, "สินค้าเสีย/ชำรุด -1 (คงเหลือ: " + item.stock + ")");
+            item.withdraw = (item.withdraw || 0) + qty;
+            item.stock = (item.stock || 0) + qty;
+            saveData();
+            logHistory(item.name, `เบิกเพิ่ม +${qty} (ยอดเบิก: ${item.withdraw}, คงเหลือ: ${item.stock})`);
+        }
+
+        // กดปุ่ม - ที่ช่องเบิก -> ใส่ตัวเลขเพื่อลดจากช่องเบิกและลดจากช่องคงเหลือ
+        function handleReduceWithdrawPrompt(id) {
+            const item = inventory.find(i => i.id === id);
+            if (!item) return;
+
+            if ((item.withdraw || 0) <= 0) {
+                alert("ยอดเบิกปัจจุบันเป็น 0 ไม่สามารถลดได้");
+                return;
             }
+
+            const input = prompt(`ระบุจำนวนที่ต้องการลดการเบิกสำหรับ "${item.name}":`, "1");
+            if (input === null) return;
+
+            const qty = parseInt(input);
+            if (isNaN(qty) || qty <= 0) {
+                alert("กรุณากรอกตัวเลขที่มากกว่า 0");
+                return;
+            }
+
+            const actualReduce = Math.min(qty, item.withdraw || 0);
+            item.withdraw = Math.max(0, (item.withdraw || 0) - actualReduce);
+            item.stock = Math.max(0, (item.stock || 0) - actualReduce);
+            saveData();
+            logHistory(item.name, `ลดการเบิก -${actualReduce} (ยอดเบิก: ${item.withdraw}, คงเหลือ: ${item.stock})`);
+        }
+
+        // บันทึกการขาย (+)
+        function handleSoldPrompt(id) {
+            const item = inventory.find(i => i.id === id);
+            if (!item) return;
+
+            if ((item.stock || 0) <= 0) {
+                alert("สินค้าคงเหลือเป็น 0 ไม่สามารถขายได้");
+                return;
+            }
+
+            const input = prompt(`ระบุจำนวนที่ขายสำหรับ "${item.name}":`, "1");
+            if (input === null) return;
+
+            const qty = parseInt(input);
+            if (isNaN(qty) || qty <= 0) {
+                alert("กรุณากรอกตัวเลขที่มากกว่า 0");
+                return;
+            }
+
+            const actualSold = Math.min(qty, item.stock || 0);
+            item.stock -= actualSold;
+            item.sold = (item.sold || 0) + actualSold;
+            saveData();
+            logHistory(item.name, `ขายสินค้า +${actualSold} ชิ้น (ขายสะสม: ${item.sold}, คงเหลือ: ${item.stock})`);
+        }
+
+        // บันทึกสินค้าเสีย (+)
+        function handleDamagedPrompt(id) {
+            const item = inventory.find(i => i.id === id);
+            if (!item) return;
+
+            if ((item.stock || 0) <= 0) {
+                alert("สินค้าคงเหลือเป็น 0 ไม่สามารถตัดเสียได้");
+                return;
+            }
+
+            const input = prompt(`ระบุจำนวนสินค้าเสียสำหรับ "${item.name}":`, "1");
+            if (input === null) return;
+
+            const qty = parseInt(input);
+            if (isNaN(qty) || qty <= 0) {
+                alert("กรุณากรอกตัวเลขที่มากกว่า 0");
+                return;
+            }
+
+            const actualDamaged = Math.min(qty, item.stock || 0);
+            item.stock -= actualDamaged;
+            item.damaged = (item.damaged || 0) + actualDamaged;
+            saveData();
+            logHistory(item.name, `สินค้าเสีย/ชำรุด +${actualDamaged} ชิ้น (เสียสะสม: ${item.damaged}, คงเหลือ: ${item.stock})`);
         }
 
         function setQty(id, field, val) {
