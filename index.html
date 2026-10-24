@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ศศิ</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts (Kanit) -->
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Kanit', sans-serif;
+            background-color: #f3f4f6;
+        }
+        @media print {
+            .no-print {
+                display: none !important;
+            }
+            .print-only {
+                display: block !important;
+            }
+            body {
+                background-color: white;
+            }
+            .shadow-sm, .shadow-md, .shadow-lg {
+                box-shadow: none !important;
+            }
+        }
+    </style>
+</head>
+<body class="text-slate-800">
+
+    <!-- Navbar -->
+    <header class="bg-indigo-600 text-white shadow-md no-print sticky top-0 z-30">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <i class="fa-solid me-2 fa-boxes-stacked text-2xl sm:text-3xl"></i>
+                <div>
+                    <h1 class="text-xl sm:text-2xl font-bold">สต๊อกสินค้าศศิ</h1>
+                    <p class="text-indigo-200 text-xs sm:text-sm">ตารางบันทึกสต๊อก คลังสินค้า เบิก ขาย เสีย และหมายเหตุ</p>
+                </div>
+            </div>
+            <div class="flex space-x-2">
+                <button onclick="exportCSV()" class="bg-emerald-500 hover:bg-emerald-600 text-white px-3 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2">
+                    <i class="fa-solid fa-file-csv"></i> <span class="hidden sm:inline">ส่งออก CSV</span>
+                </button>
+                <button onclick="window.print()" class="bg-indigo-800 hover:bg-indigo-900 text-white px-3 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2">
+                    <i class="fa-solid fa-print"></i> <span class="hidden sm:inline">พิมพ์รายงาน</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+        <!-- Summary Cards -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 no-print">
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 border-l-4 border-l-blue-500">
+                <p class="text-slate-500 text-xs font-medium">รวมคงเหลือทั้งหมด</p>
+                <p id="totalStock" class="text-2xl font-bold text-blue-600 mt-1">0</p>
+            </div>
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 border-l-4 border-l-amber-500">
+                <p class="text-slate-500 text-xs font-medium">รวมยอดเบิก</p>
+                <p id="totalWithdraw" class="text-2xl font-bold text-amber-600 mt-1">0</p>
+            </div>
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 border-l-4 border-l-emerald-500">
+                <p class="text-slate-500 text-xs font-medium">รวมยอดขาย</p>
+                <p id="totalSold" class="text-2xl font-bold text-emerald-600 mt-1">0</p>
+            </div>
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 border-l-4 border-l-rose-500">
+                <p class="text-slate-500 text-xs font-medium">รวมสินค้าเสีย/ชำรุด</p>
+                <p id="totalDamaged" class="text-2xl font-bold text-rose-600 mt-1">0</p>
+            </div>
+        </div>
+
+        <!-- Controls Section -->
+        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 space-y-4 no-print">
+            <div class="flex flex-col md:flex-row gap-3 justify-between items-stretch md:items-center">
+                <!-- Search Box -->
+                <div class="relative flex-1">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                    <input type="text" id="searchInput" oninput="renderTable()" placeholder="ค้นหารายการสินค้า..." class="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none text-sm">
+                </div>
+                
+                <!-- Category Filter -->
+                <div class="flex gap-2 items-center overflow-x-auto pb-1 md:pb-0">
+                    <select id="categoryFilter" onchange="renderTable()" class="border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-white">
+                        <option value="ALL">หมวดหมู่ทั้งหมด</option>
+                        <option value="ผลไม้แปรรูป">ผลไม้แปรรูป</option>
+                        <option value="ผลไม้สด/ดอง">ผลไม้สด/ดอง</option>
+                        <option value="เครื่องปรุง/พริกเกลือ">เครื่องปรุง/พริกเกลือ</option>
+                        <option value="บรรจุภัณฑ์/อุปกรณ์">บรรจุภัณฑ์/อุปกรณ์</option>
+                        <option value="อื่นๆ">อื่นๆ</option>
+                    </select>
+
+                    <button onclick="openAddModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition flex items-center gap-1">
+                        <i class="fa-solid fa-plus"></i> เพิ่มรายการ
+                    </button>
+                    
+                    <button onclick="resetData()" class="bg-slate-100 hover:bg-slate-200 text-slate-600 px-3 py-2 rounded-lg text-sm transition" title="รีเซ็ตเป็นค่าเริ่มต้น">
+                        <i class="fa-solid fa-rotate-right"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Inventory Table -->
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-slate-50 border-b border-slate-200 text-slate-600 text-xs font-semibold uppercase tracking-wider">
+                            <th class="py-3.5 px-4 w-12 text-center">#</th>
+                            <th class="py-3.5 px-4">รายการสินค้า</th>
+                            <th class="py-3.5 px-4 text-center bg-blue-50/50 text-blue-700">คงเหลือ</th>
+                            <th class="py-3.5 px-4 text-center bg-amber-50/50 text-amber-700">เบิก</th>
+                            <th class="py-3.5 px-4 text-center bg-emerald-50/50 text-emerald-700">ขาย</th>
+                            <th class="py-3.5 px-4 text-center bg-rose-50/50 text-rose-700">เสีย</th>
+                            <th class="py-3.5 px-4">หมายเหตุ</th>
+                            <th class="py-3.5 px-4 text-center no-print w-20">จัดการ</th>
+                        </tr>
+                    </thead>
+                    <tbody id="inventoryBody" class="divide-y divide-slate-200 text-sm">
+                        <!-- Dynamic Content Generated by JS -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modal for Adding New Item -->
+    <div id="addModal" class="fixed inset-0 bg-slate-900/50 hidden items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-xl max-w-md w-full p-6 shadow-xl space-y-4">
+            <div class="flex justify-between items-center border-b pb-3">
+                <h3 class="text-lg font-bold text-slate-800">เพิ่มรายการสินค้าใหม่</h3>
+                <button onclick="closeAddModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-xl"></i></button>
+            </div>
+            <form id="addItemForm" onsubmit="handleAddItem(event)" class="space-y-3">
+                <div>
+                    <label class="block text-xs font-medium text-slate-600 mb-1">ชื่อรายการสินค้า</label>
+                    <input type="text" id="newItemName" required class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-600 mb-1">หมวดหมู่</label>
+                    <select id="newItemCategory" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-white">
+                        <option value="ผลไม้แปรรูป">ผลไม้แปรรูป</option>
+                        <option value="ผลไม้สด/ดอง">ผลไม้สด/ดอง</option>
+                        <option value="เครื่องปรุง/พริกเกลือ">เครื่องปรุง/พริกเกลือ</option>
+                        <option value="บรรจุภัณฑ์/อุปกรณ์">บรรจุภัณฑ์/อุปกรณ์</option>
+                        <option value="อื่นๆ">อื่นๆ</option>
+                    </select>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600 mb-1">จำนวนคงเหลือเริ่มต้น</label>
+                        <input type="number" id="newItemStock" min="0" value="0" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600 mb-1">เบิก</label>
+                        <input type="number" id="newItemWithdraw" min="0" value="0" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-600 mb-1">หมายเหตุ</label>
+                    <input type="text" id="newItemNote" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="เช่น รายการขายดี, ใกล้หมด">
+                </div>
+                <div class="flex justify-end gap-2 pt-3 border-t">
+                    <button type="button" onclick="closeAddModal()" class="px-4 py-2 border border-slate-300 rounded-lg text-sm text-slate-600 hover:bg-slate-50">ยกเลิก</button>
+                    <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700">บันทึก</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Script JavaScript -->
+    <script>
+        // รหัสผ่านสำหรับการลบสินค้า
+        const DELETE_PASSWORD = "198444";
+
+        // รายการสินค้าเริ่มต้น 61 รายการ
+        const defaultProducts = [
+            { name: "ลูกชิดเล็ก", category: "ผลไม้แปรรูป" },
+            { name: "บ๊วย", category: "ผลไม้แปรรูป" },
+            { name: "บ๊วยสามรส", category: "ผลไม้แปรรูป" },
+            { name: "บ๊วยแดง", category: "ผลไม้แปรรูป" },
+            { name: "มะม่วงสามรส", category: "ผลไม้แปรรูป" },
+            { name: "มะม่วงหวาน", category: "ผลไม้แปรรูป" },
+            { name: "มะม่วงหยี", category: "ผลไม้แปรรูป" },
+            { name: "มะม่วงพริกเกลือ", category: "ผลไม้แปรรูป" },
+            { name: "มะเขือเทศอบแห้ง", category: "ผลไม้แปรรูป" },
+            { name: "มะขามจี๊ด", category: "ผลไม้แปรรูป" },
+            { name: "มะขามจี๊ดจ๊าด", category: "ผลไม้แปรรูป" },
+            { name: "มะขามหวาน", category: "ผลไม้แปรรูป" },
+            { name: "สับปะรดภูแล", category: "ผลไม้สด/ดอง" },
+            { name: "สับปะรดอบ", category: "ผลไม้แปรรูป" },
+            { name: "สับปะรดพริกเกลือ", category: "ผลไม้แปรรูป" },
+            { name: "ปลาหวานกรอบ", category: "อื่นๆ" },
+            { name: "กล้วยเบรกแตก", category: "ผลไม้แปรรูป" },
+            { name: "กล้วยฉาบ", category: "ผลไม้แปรรูป" },
+            { name: "มะพร้าวแก้วเส้น", category: "ผลไม้แปรรูป" },
+            { name: "มะพร้าวแก้วแผ่น", category: "ผลไม้แปรรูป" },
+            { name: "มะพร้าวแก้วก้อน", category: "ผลไม้แปรรูป" },
+            { name: "กีวี่", category: "ผลไม้แปรรูป" },
+            { name: "ถั่ว", category: "อื่นๆ" },
+            { name: "เยลลี่", category: "อื่นๆ" },
+            { name: "เม็ดทานตะวัน", category: "อื่นๆ" },
+            { name: "กระเจี๊ยบ", category: "ผลไม้แปรรูป" },
+            { name: "สามกวน", category: "ผลไม้แปรรูป" },
+            { name: "สตอเบอรี่เล็ก", category: "ผลไม้แปรรูป" },
+            { name: "ขิงอบแห้งเล็ก", category: "ผลไม้แปรรูป" },
+            { name: "พุทราชีสสตอเบอรี่", category: "ผลไม้แปรรูป" },
+            { name: "พุทราชีสเม็ดมะม่วง", category: "ผลไม้แปรรูป" },
+            { name: "พุทราชีสอัลมอนด์", category: "ผลไม้แปรรูป" },
+            { name: "ดับเบิ้ลชีส", category: "อื่นๆ" },
+            { name: "ขิงอบแห้งใหญ่", category: "ผลไม้แปรรูป" },
+            { name: "สตอเบอรี่ใหญ่", category: "ผลไม้แปรรูป" },
+            { name: "ม่วงสามรสใหญ่", category: "ผลไม้แปรรูป" },
+            { name: "มะม่วงหวานใหญ่", category: "ผลไม้แปรรูป" },
+            { name: "มะม่วงหวาน+สามรสใหญ่", category: "ผลไม้แปรรูป" },
+            { name: "ผลไม้กล่อง 30 ฿", category: "ผลไม้สด/ดอง" },
+            { name: "ผลไม้กล่อง 50 ฿", category: "ผลไม้สด/ดอง" },
+            { name: "ผลไม้กล่อง 60 ฿", category: "ผลไม้สด/ดอง" },
+            { name: "ผลไม้กล่อง 100 ฿", category: "ผลไม้สด/ดอง" },
+            { name: "ผลไม้ถุง 20฿ สด", category: "ผลไม้สด/ดอง" },
+            { name: "ผลไม้ถุง 20฿ ดอง", category: "ผลไม้สด/ดอง" },
+            { name: "น้ำปลาหวาน", category: "เครื่องปรุง/พริกเกลือ" },
+            { name: "พริกกะปิ", category: "เครื่องปรุง/พริกเกลือ" },
+            { name: "พริกเกลือเค็ม", category: "เครื่องปรุง/พริกเกลือ" },
+            { name: "พริกเกลือหวาน", category: "เครื่องปรุง/พริกเกลือ" },
+            { name: "พริกเกลือบ๊วย", category: "เครื่องปรุง/พริกเกลือ" },
+            { name: "ปลากรอบ", category: "อื่นๆ" },
+            { name: "กุ้งแห้ง", category: "อื่นๆ" },
+            { name: "พริกสด + หอมใหญ่", category: "เครื่องปรุง/พริกเกลือ" },
+            { name: "ช้อน ส้อม", category: "บรรจุภัณฑ์/อุปกรณ์" },
+            { name: "ไม้จิ้ม", category: "บรรจุภัณฑ์/อุปกรณ์" },
+            { name: "ถ้วย", category: "บรรจุภัณฑ์/อุปกรณ์" },
+            { name: "กล่อง 750 ml.", category: "บรรจุภัณฑ์/อุปกรณ์" },
+            { name: "กล่อง 1000 ml.", category: "บรรจุภัณฑ์/อุปกรณ์" },
+            { name: "กล่อง 1200 ml.", category: "บรรจุภัณฑ์/อุปกรณ์" },
+            { name: "ทิชชู", category: "บรรจุภัณฑ์/อุปกรณ์" },
+            { name: "ถุงขยะ", category: "บรรจุภัณฑ์/อุปกรณ์" }
+        ];
+
+        let inventory = [];
+
+        // โหลดข้อมูลเริ่มต้น
+        function initData() {
+            const saved = localStorage.getItem('inventoryData');
+            if (saved) {
+                inventory = JSON.parse(saved);
+            } else {
+                inventory = defaultProducts.map((p, idx) => ({
+                    id: idx + 1,
+                    name: p.name,
+                    category: p.category,
+                    stock: 0,
+                    withdraw: 0,
+                    sold: 0,
+                    damaged: 0,
+                    note: ""
+                }));
+                saveData();
+            }
+            renderTable();
+        }
+
+        // บันทึกลง LocalStorage
+        function saveData() {
+            localStorage.setItem('inventoryData', JSON.stringify(inventory));
+            updateSummary();
+        }
+
+        // สรุปยอดรวมด้านบน
+        function updateSummary() {
+            let totalStock = 0, totalWithdraw = 0, totalSold = 0, totalDamaged = 0;
+            inventory.forEach(item => {
+                totalStock += item.stock || 0;
+                totalWithdraw += item.withdraw || 0;
+                totalSold += item.sold || 0;
+                totalDamaged += item.damaged || 0;
+            });
+            document.getElementById('totalStock').innerText = totalStock.toLocaleString();
+            document.getElementById('totalWithdraw').innerText = totalWithdraw.toLocaleString();
+            document.getElementById('totalSold').innerText = totalSold.toLocaleString();
+            document.getElementById('totalDamaged').innerText = totalDamaged.toLocaleString();
+        }
+
+        // แสดงผลตาราง
+        function renderTable() {
+            const tbody = document.getElementById('inventoryBody');
+            const search = document.getElementById('searchInput').value.toLowerCase();
+            const category = document.getElementById('categoryFilter').value;
+
+            tbody.innerHTML = '';
+
+            const filtered = inventory.filter(item => {
+                const matchSearch = item.name.toLowerCase().includes(search) || (item.note && item.note.toLowerCase().includes(search));
+                const matchCat = (category === 'ALL') || (item.category === category);
+                return matchSearch && matchCat;
+            });
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="8" class="text-center py-8 text-slate-400">ไม่พบรายการสินค้าที่ค้นหา</td></tr>`;
+                updateSummary();
+                return;
+            }
+
+            filtered.forEach((item, index) => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50/80 transition border-b border-slate-100";
+                tr.innerHTML = `
+                    <td class="py-3 px-4 text-center text-slate-400 text-xs">${index + 1}</td>
+                    <td class="py-3 px-4 font-medium text-slate-800">
+                        <div>${item.name}</div>
+                        <div class="text-[10px] text-slate-400 font-normal">${item.category}</div>
+                    </td>
+                    
+                    <!-- คงเหลือ -->
+                    <td class="py-3 px-2 text-center bg-blue-50/30">
+                        <div class="inline-flex items-center gap-1">
+                            <button onclick="updateQty(${item.id}, 'stock', -1)" class="no-print w-6 h-6 rounded bg-slate-200 text-slate-600 hover:bg-slate-300 flex items-center justify-center text-xs">-</button>
+                            <input type="number" value="${item.stock}" onchange="setQty(${item.id}, 'stock', this.value)" class="w-14 text-center border border-slate-200 rounded py-1 px-1 text-sm font-semibold text-blue-700 bg-white focus:outline-none focus:ring-1 focus:ring-blue-500">
+                            <button onclick="updateQty(${item.id}, 'stock', 1)" class="no-print w-6 h-6 rounded bg-blue-100 text-blue-600 hover:bg-blue-200 flex items-center justify-center text-xs">+</button>
+                        </div>
+                    </td>
+
+                    <!-- เบิก -->
+                    <td class="py-3 px-2 text-center bg-amber-50/30">
+                        <div class="inline-flex items-center gap-1">
+                            <button onclick="updateQty(${item.id}, 'withdraw', -1)" class="no-print w-6 h-6 rounded bg-slate-200 text-slate-600 hover:bg-slate-300 flex items-center justify-center text-xs">-</button>
+                            <input type="number" value="${item.withdraw}" onchange="setQty(${item.id}, 'withdraw', this.value)" class="w-14 text-center border border-slate-200 rounded py-1 px-1 text-sm font-semibold text-amber-700 bg-white focus:outline-none focus:ring-1 focus:ring-amber-500">
+                            <button onclick="updateQty(${item.id}, 'withdraw', 1)" class="no-print w-6 h-6 rounded bg-amber-100 text-amber-600 hover:bg-amber-200 flex items-center justify-center text-xs">+</button>
+                        </div>
+                    </td>
+
+                    <!-- ขาย -->
+                    <td class="py-3 px-2 text-center bg-emerald-50/30">
+                        <div class="inline-flex items-center gap-1">
+                            <button onclick="updateQty(${item.id}, 'sold', -1)" class="no-print w-6 h-6 rounded bg-slate-200 text-slate-600 hover:bg-slate-300 flex items-center justify-center text-xs">-</button>
+                            <input type="number" value="${item.sold}" onchange="setQty(${item.id}, 'sold', this.value)" class="w-14 text-center border border-slate-200 rounded py-1 px-1 text-sm font-semibold text-emerald-700 bg-white focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                            <button onclick="updateQty(${item.id}, 'sold', 1)" class="no-print w-6 h-6 rounded bg-emerald-100 text-emerald-600 hover:bg-emerald-200 flex items-center justify-center text-xs">+</button>
+                        </div>
+                    </td>
+
+                    <!-- เสีย -->
+                    <td class="py-3 px-2 text-center bg-rose-50/30">
+                        <div class="inline-flex items-center gap-1">
+                            <button onclick="updateQty(${item.id}, 'damaged', -1)" class="no-print w-6 h-6 rounded bg-slate-200 text-slate-600 hover:bg-slate-300 flex items-center justify-center text-xs">-</button>
+                            <input type="number" value="${item.damaged}" onchange="setQty(${item.id}, 'damaged', this.value)" class="w-14 text-center border border-slate-200 rounded py-1 px-1 text-sm font-semibold text-rose-700 bg-white focus:outline-none focus:ring-1 focus:ring-rose-500">
+                            <button onclick="updateQty(${item.id}, 'damaged', 1)" class="no-print w-6 h-6 rounded bg-rose-100 text-rose-600 hover:bg-rose-200 flex items-center justify-center text-xs">+</button>
+                        </div>
+                    </td>
+
+                    <!-- หมายเหตุ -->
+                    <td class="py-3 px-4">
+                        <input type="text" value="${item.note || ''}" placeholder="บันทึกย่อ..." onchange="updateNote(${item.id}, this.value)" class="w-full border-b border-transparent hover:border-slate-300 focus:border-indigo-500 bg-transparent px-1 py-1 text-xs text-slate-600 focus:outline-none">
+                    </td>
+
+                    <!-- ลบ -->
+                    <td class="py-3 px-4 text-center no-print">
+                        <button onclick="deleteItem(${item.id})" class="text-slate-300 hover:text-rose-500 transition px-2 py-1" title="ลบรายการ (ต้องใช้รหัสผ่าน)"><i class="fa-solid fa-trash-can"></i></button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            updateSummary();
+        }
+
+        // ปรับจำนวน (+/-)
+        function updateQty(id, field, delta) {
+            const item = inventory.find(i => i.id === id);
+            if (item) {
+                item[field] = Math.max(0, (item[field] || 0) + delta);
+                saveData();
+                renderTable();
+            }
+        }
+
+        // แก้ไขจำนวนโดยตรง
+        function setQty(id, field, val) {
+            const item = inventory.find(i => i.id === id);
+            if (item) {
+                item[field] = Math.max(0, parseInt(val) || 0);
+                saveData();
+            }
+        }
+
+        // แก้ไขหมายเหตุ
+        function updateNote(id, noteVal) {
+            const item = inventory.find(i => i.id === id);
+            if (item) {
+                item.note = noteVal;
+                saveData();
+            }
+        }
+
+        // ลบรายการ (พร้อมระบบยืนยันรหัสผ่าน 198444)
+        function deleteItem(id) {
+            const password = prompt('กรุณากรอกรหัสผ่านเพื่อยืนยันการลบสินค้า:');
+            
+            if (password === null) return; // กด Cancel
+
+            if (password === DELETE_PASSWORD) {
+                inventory = inventory.filter(i => i.id !== id);
+                saveData();
+                renderTable();
+                alert('ลบรายการเรียบร้อยแล้ว');
+            } else {
+                alert('รหัสผ่านไม่ถูกต้อง! ไม่สามารถลบรายการได้');
+            }
+        }
+
+        // Modal การเพิ่มสินค้า
+        function openAddModal() {
+            document.getElementById('addModal').classList.remove('hidden');
+            document.getElementById('addModal').classList.add('flex');
+        }
+
+        function closeAddModal() {
+            document.getElementById('addModal').classList.add('hidden');
+            document.getElementById('addModal').classList.remove('flex');
+            document.getElementById('addItemForm').reset();
+        }
+
+        function handleAddItem(e) {
+            e.preventDefault();
+            const newItem = {
+                id: Date.now(),
+                name: document.getElementById('newItemName').value,
+                category: document.getElementById('newItemCategory').value,
+                stock: parseInt(document.getElementById('newItemStock').value) || 0,
+                withdraw: parseInt(document.getElementById('newItemWithdraw').value) || 0,
+                sold: 0,
+                damaged: 0,
+                note: document.getElementById('newItemNote').value || ""
+            };
+
+            inventory.unshift(newItem);
+            saveData();
+            renderTable();
+            closeAddModal();
+        }
+
+        // รีเซ็ตข้อมูลเป็นค่าเริ่มต้น (พร้อมระบบยืนยันรหัสผ่าน 198444)
+        function resetData() {
+            const password = prompt('กรุณากรอกรหัสผ่านเพื่อยืนยันการรีเซ็ตข้อมูลทั้งหมด:');
+            
+            if (password === null) return; // กด Cancel
+
+            if (password === DELETE_PASSWORD) {
+                if (confirm('คุณแน่ใจหรือไม่ว่าต้องการรีเซ็ตรายการสินค้ากลับเป็นค่าเริ่มต้น?')) {
+                    localStorage.removeItem('inventoryData');
+                    initData();
+                    alert('รีเซ็ตข้อมูลเรียบร้อยแล้ว');
+                }
+            } else {
+                alert('รหัสผ่านไม่ถูกต้อง! ไม่สามารถรีเซ็ตข้อมูลได้');
+            }
+        }
+
+        // ส่งออกเป็น CSV
+        function exportCSV() {
+            let csvContent = "\uFEFF"; // UTF-8 BOM
+            csvContent += "ลำดับ,รายการสินค้า,หมวดหมู่,คงเหลือ,เบิก,ขาย,เสีย,หมายเหตุ\n";
+
+            inventory.forEach((item, index) => {
+                csvContent += `"${index + 1}","${item.name}","${item.category}",${item.stock},${item.withdraw},${item.sold},${item.damaged},"${item.note || ''}"\n`;
+            });
+
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.setAttribute("href", url);
+            link.setAttribute("download", `สต๊อกสินค้า_${new Date().toISOString().slice(0, 10)}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // เริ่มทำงานเมื่อเปิดหน้าเว็บ
+        window.onload = initData;
+    </script>
+</body>
+</html>
