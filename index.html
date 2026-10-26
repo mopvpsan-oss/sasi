@@ -10,6 +10,9 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Google Font Prompt -->
     <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Firebase SDK (Version 9 Compat for Easy Global Sync) -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
     <style>
         body { font-family: 'Prompt', sans-serif; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
@@ -27,7 +30,7 @@
                 </div>
                 <div>
                     <h1 class="text-xl font-bold tracking-wide">ร้าน by.sasi</h1>
-                    <p class="text-xs text-emerald-100">ระบบจัดการสต๊อกสินค้า & คำนวณยอดขาย (Real-time)</p>
+                    <p class="text-xs text-emerald-100">ระบบจัดการสต๊อกสินค้า & คำนวณยอดขาย (Vercel Realtime)</p>
                 </div>
             </div>
             
@@ -37,9 +40,9 @@
                     <span id="current-time-display" class="font-mono font-semibold">00:00:00</span>
                 </div>
                 <div class="h-4 w-px bg-emerald-400/40"></div>
-                <div class="text-xs flex items-center gap-1.5">
+                <div class="text-xs flex items-center gap-1.5" id="sync-status-badge">
                     <span class="w-2 h-2 rounded-full bg-emerald-300 animate-pulse"></span>
-                    <span class="text-emerald-100 font-medium">เชื่อมต่อ Real-time แล้ว</span>
+                    <span class="text-emerald-100 font-medium">เชื่อมต่อ Real-time</span>
                 </div>
             </div>
         </div>
@@ -120,7 +123,7 @@
                             <i class="fa-solid fa-tag text-emerald-600"></i>
                             รายการสินค้าที่มีการขาย
                         </h2>
-                        <p class="text-xs text-slate-500 mt-0.5">ราคา 20, 30, 35, 50, 60, 100 บาท — กด (+) เพื่อเบิกเพิ่ม / กรอกช่อง "คงเหลือ" เพื่อคำนวณตัดยอดขาย</p>
+                        <p class="text-xs text-slate-500 mt-0.5">ราคา 20, 30, 35, 50, 60, 100 บาท — กด (+) เบิกเพิ่ม / กรอก "คงเหลือ" เพื่อตัดยอดขาย</p>
                     </div>
                     <div class="flex items-center gap-2 flex-wrap">
                         <button onclick="openPinModal('resetDailyWithdraw')" class="bg-amber-100 hover:bg-amber-200 text-amber-800 text-xs px-3 py-2 rounded-xl font-medium transition flex items-center gap-1.5 border border-amber-300">
@@ -306,6 +309,27 @@
         const PIN_CODE = "198444";
         let pendingAction = null;
 
+        // 👇 ใส่ค่า firebaseConfig จากภาพของคุณเรียบร้อยแล้ว 👇
+        const firebaseConfig = {
+            apiKey: "AIzaSyD8XOZUorFbWMØsqur2IgV-n6Nar92syes",
+            authDomain: "sasi-stock.firebaseapp.com",
+            databaseURL: "https://sasi-stock-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "sasi-stock",
+            storageBucket: "sasi-stock.firebasestorage.app",
+            messagingSenderId: "1090344270260",
+            appId: "1:1090344270260:web:fb5399193ad671b034dae1",
+            measurementId: "G-73DVZW271Z"
+        };
+
+        // Initialize Firebase Realtime Database
+        let db = null;
+        try {
+            firebase.initializeApp(firebaseConfig);
+            db = firebase.database();
+        } catch (e) {
+            console.warn("Firebase Config Error:", e);
+        }
+
         const DEFAULT_PRODUCTS = [
             { id: 'p1', name: 'สินค้า ราคา 20 บาท', price: 20, store: 0, withdrawToday: 0, waste: 0 },
             { id: 'p2', name: 'สินค้า ราคา 30 บาท', price: 30, store: 0, withdrawToday: 0, waste: 0 },
@@ -346,54 +370,53 @@
         let lastResetDate = null;
         let selectedProductIdForWithdraw = null;
 
-        // BroadcastChannel สำหรับซิงค์ข้อมูลแบบ Real-time ระหว่างแท็บ/อุปกรณ์ในวงเดียวกัน
-        const sasiChannel = new BroadcastChannel('sasi_stock_realtime_channel');
-        sasiChannel.onmessage = function(event) {
-            if (event.data && event.data.type === 'SYNC_DATA') {
-                products = event.data.products;
-                supplies = event.data.supplies;
-                withdrawLogs = event.data.withdrawLogs;
-                salesReports = event.data.salesReports;
-                lastResetDate = event.data.lastResetDate;
+        function syncToFirebase() {
+            const dataState = { products, supplies, withdrawLogs, salesReports, lastResetDate };
+            if (db) {
+                db.ref('stock_data').set(dataState);
+            }
+            localStorage.setItem('sasi_local_backup', JSON.stringify(dataState));
+        }
 
+        function listenToFirebase() {
+            if (db) {
+                db.ref('stock_data').on('value', (snapshot) => {
+                    const val = snapshot.val();
+                    if (val) {
+                        products = val.products || DEFAULT_PRODUCTS;
+                        supplies = val.supplies || DEFAULT_SUPPLIES;
+                        withdrawLogs = val.withdrawLogs || [];
+                        salesReports = val.salesReports || [];
+                        lastResetDate = val.lastResetDate || null;
+
+                        renderProductTable();
+                        renderSupplyTable();
+                        renderWithdrawLogs();
+                        renderSalesReports();
+                        updateStats();
+                    } else {
+                        syncToFirebase();
+                    }
+                });
+            } else {
+                const local = localStorage.getItem('sasi_local_backup');
+                if (local) {
+                    const parsed = JSON.parse(local);
+                    products = parsed.products || DEFAULT_PRODUCTS;
+                    supplies = parsed.supplies || DEFAULT_SUPPLIES;
+                    withdrawLogs = parsed.withdrawLogs || [];
+                    salesReports = parsed.salesReports || [];
+                    lastResetDate = parsed.lastResetDate || null;
+                } else {
+                    products = DEFAULT_PRODUCTS;
+                    supplies = DEFAULT_SUPPLIES;
+                }
                 renderProductTable();
                 renderSupplyTable();
                 renderWithdrawLogs();
                 renderSalesReports();
                 updateStats();
             }
-        };
-
-        function broadcastState() {
-            sasiChannel.postMessage({
-                type: 'SYNC_DATA',
-                products, supplies, withdrawLogs, salesReports, lastResetDate
-            });
-        }
-
-        function saveData() {
-            localStorage.setItem('sasi_products_v3', JSON.stringify(products));
-            localStorage.setItem('sasi_supplies_v3', JSON.stringify(supplies));
-            localStorage.setItem('sasi_withdraw_logs_v3', JSON.stringify(withdrawLogs));
-            localStorage.setItem('sasi_sales_reports_v3', JSON.stringify(salesReports));
-            localStorage.setItem('sasi_last_reset_v3', lastResetDate);
-            broadcastState(); // ส่งข้อมูลซิงค์ไปเครื่องอื่นทันที
-        }
-
-        function loadData() {
-            const savedProducts = localStorage.getItem('sasi_products_v3');
-            products = savedProducts ? JSON.parse(savedProducts) : DEFAULT_PRODUCTS;
-
-            const savedSupplies = localStorage.getItem('sasi_supplies_v3');
-            supplies = savedSupplies ? JSON.parse(savedSupplies) : DEFAULT_SUPPLIES;
-
-            const savedLogs = localStorage.getItem('sasi_withdraw_logs_v3');
-            withdrawLogs = savedLogs ? JSON.parse(savedLogs) : [];
-
-            const savedReports = localStorage.getItem('sasi_sales_reports_v3');
-            salesReports = savedReports ? JSON.parse(savedReports) : [];
-
-            lastResetDate = localStorage.getItem('sasi_last_reset_v3') || null;
         }
 
         function updateClock() {
@@ -411,7 +434,7 @@
                 if (lastResetDate !== todayStr || manualTrigger) {
                     resetDailyWithdrawals();
                     lastResetDate = todayStr;
-                    localStorage.setItem('sasi_last_reset_v3', lastResetDate);
+                    syncToFirebase();
                     showToast('รีเซ็ตยอดเบิกประจำวัน (09:00 น.) เรียบร้อยแล้ว', 'info');
                 }
             }
@@ -420,7 +443,7 @@
 
         function resetDailyWithdrawals() {
             products.forEach(p => { p.withdrawToday = 0; p.waste = 0; });
-            saveData();
+            syncToFirebase();
             renderProductTable();
             updateStats();
         }
@@ -442,8 +465,8 @@
             if (document.getElementById('pin-input').value === PIN_CODE) {
                 closePinModal();
                 if (pendingAction === 'resetDailyWithdraw') { resetDailyWithdrawals(); showToast('รีเซ็ตยอดเบิกประจำวันเรียบร้อย', 'success'); }
-                else if (pendingAction === 'clearWithdrawLogs') { withdrawLogs = []; saveData(); renderWithdrawLogs(); showToast('ล้างประวัติการเบิกเรียบร้อย', 'success'); }
-                else if (pendingAction === 'clearSalesReports') { salesReports = []; saveData(); renderSalesReports(); updateStats(); showToast('ล้างรายงานยอดขายเรียบร้อย', 'success'); }
+                else if (pendingAction === 'clearWithdrawLogs') { withdrawLogs = []; syncToFirebase(); renderWithdrawLogs(); showToast('ล้างประวัติการเบิกเรียบร้อย', 'success'); }
+                else if (pendingAction === 'clearSalesReports') { salesReports = []; syncToFirebase(); renderSalesReports(); updateStats(); showToast('ล้างรายงานยอดขายเรียบร้อย', 'success'); }
             } else {
                 document.getElementById('pin-error').classList.remove('hidden');
             }
@@ -455,7 +478,7 @@
             const newWaste = (product.waste || 0) + delta;
             if (newWaste < 0) return;
             product.waste = newWaste;
-            saveData();
+            syncToFirebase();
             renderProductTable();
             updateStats();
         }
@@ -518,7 +541,7 @@
                 const input = document.getElementById(`supply-input-${item.id}`);
                 if (input) item.stock = parseInt(input.value) || 0;
             });
-            saveData();
+            syncToFirebase();
             showToast('บันทึกสต๊อกสิ่งของ/อุปกรณ์เรียบร้อย', 'success');
         }
 
@@ -546,7 +569,7 @@
                 product.store += amount;
                 product.withdrawToday += amount;
                 withdrawLogs.unshift({ time: new Date().toLocaleString('th-TH'), productName: product.name, amount: amount, afterWithdrawToday: product.withdrawToday });
-                saveData();
+                syncToFirebase();
                 renderProductTable();
                 renderWithdrawLogs();
                 updateStats();
@@ -582,7 +605,7 @@
             if (soldQty > 0 || wasteQty > 0) {
                 salesReports.unshift({ id: Date.now(), time: new Date().toLocaleString('th-TH'), items: [{ name: product.name, sold: soldQty, waste: wasteQty, price: product.price, total: totalPrice }], totalQty: soldQty, totalWaste: wasteQty, totalMoney: totalPrice });
             }
-            saveData();
+            syncToFirebase();
             renderProductTable();
             renderSalesReports();
             updateStats();
@@ -617,7 +640,7 @@
             if (reportItems.length > 0) {
                 salesReports.unshift({ id: Date.now(), time: new Date().toLocaleString('th-TH'), items: reportItems, totalQty: totalSoldAll, totalWaste: totalWasteAll, totalMoney: totalMoneyAll });
             }
-            saveData();
+            syncToFirebase();
             renderProductTable();
             renderSalesReports();
             updateStats();
@@ -638,7 +661,7 @@
 
         function deleteReport(reportId) {
             salesReports = salesReports.filter(r => r.id !== reportId);
-            saveData();
+            syncToFirebase();
             renderSalesReports();
             updateStats();
             showToast('ลบรายการรายงานเรียบร้อย', 'info');
@@ -677,13 +700,7 @@
         }
 
         window.onload = function() {
-            loadData();
-            checkAutoReset(false);
-            renderProductTable();
-            renderSupplyTable();
-            renderWithdrawLogs();
-            renderSalesReports();
-            updateStats();
+            listenToFirebase();
             setInterval(updateClock, 1000);
         };
     </script>
