@@ -11,18 +11,9 @@
     <!-- Google Font Prompt -->
     <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        body {
-            font-family: 'Prompt', sans-serif;
-        }
-        /* Hide scrollbar for Chrome, Safari and Opera */
-        .no-scrollbar::-webkit-scrollbar {
-            display: none;
-        }
-        /* Hide scrollbar for IE, Edge and Firefox */
-        .no-scrollbar {
-            -ms-overflow-style: none;  /* IE and Edge */
-            scrollbar-width: none;  /* Firefox */
-        }
+        body { font-family: 'Prompt', sans-serif; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
 </head>
 <body class="bg-slate-100 text-slate-800 min-h-screen flex flex-col antialiased">
@@ -36,7 +27,7 @@
                 </div>
                 <div>
                     <h1 class="text-xl font-bold tracking-wide">ร้าน by.sasi</h1>
-                    <p class="text-xs text-emerald-100">ระบบจัดการสต๊อกสินค้า & คำนวณยอดขาย</p>
+                    <p class="text-xs text-emerald-100">ระบบจัดการสต๊อกสินค้า & คำนวณยอดขาย (Real-time)</p>
                 </div>
             </div>
             
@@ -46,9 +37,9 @@
                     <span id="current-time-display" class="font-mono font-semibold">00:00:00</span>
                 </div>
                 <div class="h-4 w-px bg-emerald-400/40"></div>
-                <div class="text-xs">
-                    <span class="text-emerald-200">รีเซ็ตยอดเบิกประจำวัน:</span> 
-                    <span class="font-semibold text-amber-300">09:00 น.</span>
+                <div class="text-xs flex items-center gap-1.5">
+                    <span class="w-2 h-2 rounded-full bg-emerald-300 animate-pulse"></span>
+                    <span class="text-emerald-100 font-medium">เชื่อมต่อ Real-time แล้ว</span>
                 </div>
             </div>
         </div>
@@ -120,7 +111,7 @@
             </button>
         </div>
 
-        <!-- TAB 1: สินค้าขาย (20, 30, 35, 50, 60, 100 บาท) -->
+        <!-- TAB 1: สินค้าขาย -->
         <div id="tab-products" class="tab-content space-y-4">
             <div class="bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden">
                 <div class="p-4 bg-slate-50/80 border-b border-slate-200/80 flex flex-wrap justify-between items-center gap-3">
@@ -155,15 +146,13 @@
                                 <th class="p-4 font-semibold text-right w-36">ตัดยอดชิ้นนี้</th>
                             </tr>
                         </thead>
-                        <tbody id="product-table-body" class="divide-y divide-slate-100 text-sm">
-                            <!-- JS จะเรนเดอร์สินค้าที่นี่ -->
-                        </tbody>
+                        <tbody id="product-table-body" class="divide-y divide-slate-100 text-sm"></tbody>
                     </table>
                 </div>
             </div>
         </div>
 
-        <!-- TAB 2: สิ่งของ / บรรจุภัณฑ์ / เครื่องปรุง (นับคงเหลืออย่างเดียว) -->
+        <!-- TAB 2: สิ่งของ / อุปกรณ์ -->
         <div id="tab-supplies" class="tab-content hidden space-y-4">
             <div class="bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden">
                 <div class="p-4 bg-slate-50/80 border-b border-slate-200/80 flex flex-wrap justify-between items-center gap-3">
@@ -172,7 +161,7 @@
                             <i class="fa-solid fa-boxes-packing text-blue-600"></i>
                             สิ่งของ / เครื่องปรุง / บรรจุภัณฑ์ (ไม่ได้ขาย - นับเฉพาะคงเหลือ)
                         </h2>
-                        <p class="text-xs text-slate-500 mt-0.5">รายการอุปกรณ์และวัตถุดิบ ใช้นับเพื่อตรวจเช็คสต๊อกคงเหลือเท่านั้น ไม่นำไปคิดยอดเงินขาย</p>
+                        <p class="text-xs text-slate-500 mt-0.5">รายการอุปกรณ์และวัตถุดิบ ใช้นับเพื่อตรวจเช็คสต๊อกคงเหลือเท่านั้น</p>
                     </div>
                     <button onclick="saveSupplyStock()" class="bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded-xl font-medium transition shadow-sm flex items-center gap-2">
                         <i class="fa-solid fa-floppy-disk"></i>
@@ -181,9 +170,7 @@
                 </div>
 
                 <div class="p-4">
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="supply-grid">
-                        <!-- JS จะเรนเดอร์อุปกรณ์ที่นี่ -->
-                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="supply-grid"></div>
                 </div>
             </div>
         </div>
@@ -214,9 +201,7 @@
                                 <th class="p-4 text-right">ยอดเบิกสะสมหลังเบิก</th>
                             </tr>
                         </thead>
-                        <tbody id="withdraw-logs-body" class="divide-y divide-slate-100">
-                            <!-- Log Table -->
-                        </tbody>
+                        <tbody id="withdraw-logs-body" class="divide-y divide-slate-100"></tbody>
                     </table>
                 </div>
             </div>
@@ -248,9 +233,7 @@
                                 <th class="p-4 text-center">จัดการ</th>
                             </tr>
                         </thead>
-                        <tbody id="sales-reports-body" class="divide-y divide-slate-100">
-                            <!-- Sales Report Rows -->
-                        </tbody>
+                        <tbody id="sales-reports-body" class="divide-y divide-slate-100"></tbody>
                     </table>
                 </div>
             </div>
@@ -320,11 +303,9 @@
     </div>
 
     <script>
-        // --- CONSTANTS & INITIAL DATA ---
         const PIN_CODE = "198444";
         let pendingAction = null;
 
-        // รายการสินค้าขาย
         const DEFAULT_PRODUCTS = [
             { id: 'p1', name: 'สินค้า ราคา 20 บาท', price: 20, store: 0, withdrawToday: 0, waste: 0 },
             { id: 'p2', name: 'สินค้า ราคา 30 บาท', price: 30, store: 0, withdrawToday: 0, waste: 0 },
@@ -334,7 +315,6 @@
             { id: 'p6', name: 'สินค้า ราคา 100 บาท', price: 100, store: 0, withdrawToday: 0, waste: 0 }
         ];
 
-        // รายการสิ่งของ / เครื่องปรุง / อุปกรณ์ (ไม่ได้ขาย - นับเฉพาะคงเหลือ)
         const DEFAULT_SUPPLIES = [
             { id: 's1', name: 'น้ำปลาหวาน', stock: 0, unit: 'กระปุก/ถุง' },
             { id: 's2', name: 'พริกกะปิ', stock: 0, unit: 'กระปุก/ถุง' },
@@ -359,7 +339,6 @@
             { id: 's21', name: 'ถุง 8x16', stock: 0, unit: 'แพ็ค' }
         ];
 
-        // State Variables
         let products = [];
         let supplies = [];
         let withdrawLogs = [];
@@ -367,36 +346,59 @@
         let lastResetDate = null;
         let selectedProductIdForWithdraw = null;
 
-        // --- LOCAL STORAGE ---
+        // BroadcastChannel สำหรับซิงค์ข้อมูลแบบ Real-time ระหว่างแท็บ/อุปกรณ์ในวงเดียวกัน
+        const sasiChannel = new BroadcastChannel('sasi_stock_realtime_channel');
+        sasiChannel.onmessage = function(event) {
+            if (event.data && event.data.type === 'SYNC_DATA') {
+                products = event.data.products;
+                supplies = event.data.supplies;
+                withdrawLogs = event.data.withdrawLogs;
+                salesReports = event.data.salesReports;
+                lastResetDate = event.data.lastResetDate;
+
+                renderProductTable();
+                renderSupplyTable();
+                renderWithdrawLogs();
+                renderSalesReports();
+                updateStats();
+            }
+        };
+
+        function broadcastState() {
+            sasiChannel.postMessage({
+                type: 'SYNC_DATA',
+                products, supplies, withdrawLogs, salesReports, lastResetDate
+            });
+        }
+
         function saveData() {
-            localStorage.setItem('sasi_products_v2', JSON.stringify(products));
-            localStorage.setItem('sasi_supplies_v2', JSON.stringify(supplies));
-            localStorage.setItem('sasi_withdraw_logs_v2', JSON.stringify(withdrawLogs));
-            localStorage.setItem('sasi_sales_reports_v2', JSON.stringify(salesReports));
-            localStorage.setItem('sasi_last_reset_v2', lastResetDate);
+            localStorage.setItem('sasi_products_v3', JSON.stringify(products));
+            localStorage.setItem('sasi_supplies_v3', JSON.stringify(supplies));
+            localStorage.setItem('sasi_withdraw_logs_v3', JSON.stringify(withdrawLogs));
+            localStorage.setItem('sasi_sales_reports_v3', JSON.stringify(salesReports));
+            localStorage.setItem('sasi_last_reset_v3', lastResetDate);
+            broadcastState(); // ส่งข้อมูลซิงค์ไปเครื่องอื่นทันที
         }
 
         function loadData() {
-            const savedProducts = localStorage.getItem('sasi_products_v2');
+            const savedProducts = localStorage.getItem('sasi_products_v3');
             products = savedProducts ? JSON.parse(savedProducts) : DEFAULT_PRODUCTS;
 
-            const savedSupplies = localStorage.getItem('sasi_supplies_v2');
+            const savedSupplies = localStorage.getItem('sasi_supplies_v3');
             supplies = savedSupplies ? JSON.parse(savedSupplies) : DEFAULT_SUPPLIES;
 
-            const savedLogs = localStorage.getItem('sasi_withdraw_logs_v2');
+            const savedLogs = localStorage.getItem('sasi_withdraw_logs_v3');
             withdrawLogs = savedLogs ? JSON.parse(savedLogs) : [];
 
-            const savedReports = localStorage.getItem('sasi_sales_reports_v2');
+            const savedReports = localStorage.getItem('sasi_sales_reports_v3');
             salesReports = savedReports ? JSON.parse(savedReports) : [];
 
-            lastResetDate = localStorage.getItem('sasi_last_reset_v2') || null;
+            lastResetDate = localStorage.getItem('sasi_last_reset_v3') || null;
         }
 
-        // --- TIME & AUTO RESET (09:00 น.) ---
         function updateClock() {
             const now = new Date();
-            const timeStr = now.toLocaleTimeString('th-TH', { hour12: false });
-            document.getElementById('current-time-display').innerText = timeStr;
+            document.getElementById('current-time-display').innerText = now.toLocaleTimeString('th-TH', { hour12: false });
             checkAutoReset();
         }
 
@@ -409,7 +411,7 @@
                 if (lastResetDate !== todayStr || manualTrigger) {
                     resetDailyWithdrawals();
                     lastResetDate = todayStr;
-                    localStorage.setItem('sasi_last_reset_v2', lastResetDate);
+                    localStorage.setItem('sasi_last_reset_v3', lastResetDate);
                     showToast('รีเซ็ตยอดเบิกประจำวัน (09:00 น.) เรียบร้อยแล้ว', 'info');
                 }
             }
@@ -417,16 +419,12 @@
         }
 
         function resetDailyWithdrawals() {
-            products.forEach(p => {
-                p.withdrawToday = 0;
-                p.waste = 0;
-            });
+            products.forEach(p => { p.withdrawToday = 0; p.waste = 0; });
             saveData();
             renderProductTable();
             updateStats();
         }
 
-        // --- PIN SECURITY MODAL ---
         function openPinModal(actionKey) {
             pendingAction = actionKey;
             document.getElementById('pin-input').value = '';
@@ -441,63 +439,36 @@
         }
 
         function verifyPinAndExecute() {
-            const inputPin = document.getElementById('pin-input').value;
-            if (inputPin === PIN_CODE) {
+            if (document.getElementById('pin-input').value === PIN_CODE) {
                 closePinModal();
-                executePendingAction();
+                if (pendingAction === 'resetDailyWithdraw') { resetDailyWithdrawals(); showToast('รีเซ็ตยอดเบิกประจำวันเรียบร้อย', 'success'); }
+                else if (pendingAction === 'clearWithdrawLogs') { withdrawLogs = []; saveData(); renderWithdrawLogs(); showToast('ล้างประวัติการเบิกเรียบร้อย', 'success'); }
+                else if (pendingAction === 'clearSalesReports') { salesReports = []; saveData(); renderSalesReports(); updateStats(); showToast('ล้างรายงานยอดขายเรียบร้อย', 'success'); }
             } else {
                 document.getElementById('pin-error').classList.remove('hidden');
             }
         }
 
-        function executePendingAction() {
-            if (pendingAction === 'resetDailyWithdraw') {
-                resetDailyWithdrawals();
-                showToast('รีเซ็ตยอดเบิกประจำวันเรียบร้อย', 'success');
-            } else if (pendingAction === 'clearWithdrawLogs') {
-                withdrawLogs = [];
-                saveData();
-                renderWithdrawLogs();
-                showToast('ล้างประวัติการเบิกเรียบร้อย', 'success');
-            } else if (pendingAction === 'clearSalesReports') {
-                salesReports = [];
-                saveData();
-                renderSalesReports();
-                updateStats();
-                showToast('ล้างรายงานยอดขายเรียบร้อย', 'success');
-            }
-        }
-
-        // --- WASTE MANAGEMENT ---
         function updateWaste(productId, delta) {
             const product = products.find(p => p.id === productId);
             if (!product) return;
-
             const newWaste = (product.waste || 0) + delta;
             if (newWaste < 0) return;
-
             product.waste = newWaste;
             saveData();
             renderProductTable();
             updateStats();
         }
 
-        // --- RENDER TABLES ---
         function renderProductTable() {
             const tbody = document.getElementById('product-table-body');
             tbody.innerHTML = '';
-
-            products.forEach((product) => {
+            products.forEach(product => {
                 const tr = document.createElement('tr');
                 tr.className = "hover:bg-slate-50 transition border-b border-slate-100";
-
                 tr.innerHTML = `
-                    <td class="p-4 font-semibold text-slate-800">
-                        ${product.name}
-                    </td>
-                    <td class="p-4 text-center font-bold text-emerald-600 text-base">
-                        ${product.store}
-                    </td>
+                    <td class="p-4 font-semibold text-slate-800">${product.name}</td>
+                    <td class="p-4 text-center font-bold text-emerald-600 text-base">${product.store}</td>
                     <td class="p-4 text-center">
                         <button onclick="openWithdrawModal('${product.id}')" class="w-8 h-8 rounded-xl bg-emerald-100 hover:bg-emerald-600 hover:text-white text-emerald-700 font-bold transition flex items-center justify-center mx-auto shadow-sm">
                             <i class="fa-solid fa-plus text-xs"></i>
@@ -518,8 +489,7 @@
                         <button onclick="calculateSingleSale('${product.id}')" class="bg-slate-100 hover:bg-emerald-50 text-emerald-700 hover:text-emerald-800 border border-slate-200 px-3 py-1.5 rounded-lg font-medium text-xs transition">
                             ตัดยอดชิ้นนี้
                         </button>
-                    </td>
-                `;
+                    </td>`;
                 tbody.appendChild(tr);
             });
         }
@@ -527,11 +497,9 @@
         function renderSupplyTable() {
             const container = document.getElementById('supply-grid');
             container.innerHTML = '';
-
-            supplies.forEach((item) => {
+            supplies.forEach(item => {
                 const card = document.createElement('div');
                 card.className = "bg-slate-50 p-4 rounded-2xl border border-slate-200/80 flex items-center justify-between";
-
                 card.innerHTML = `
                     <div>
                         <p class="font-bold text-slate-800 text-sm">${item.name}</p>
@@ -540,8 +508,7 @@
                     <div class="flex items-center space-x-2">
                         <input type="number" id="supply-input-${item.id}" value="${item.stock}" min="0" 
                             class="w-20 text-center px-2 py-1.5 border border-slate-300 rounded-xl font-bold text-blue-600 focus:ring-2 focus:ring-blue-500 outline-none bg-white">
-                    </div>
-                `;
+                    </div>`;
                 container.appendChild(card);
             });
         }
@@ -549,25 +516,20 @@
         function saveSupplyStock() {
             supplies.forEach(item => {
                 const input = document.getElementById(`supply-input-${item.id}`);
-                if (input) {
-                    item.stock = parseInt(input.value) || 0;
-                }
+                if (input) item.stock = parseInt(input.value) || 0;
             });
             saveData();
             showToast('บันทึกสต๊อกสิ่งของ/อุปกรณ์เรียบร้อย', 'success');
         }
 
-        // --- WITHDRAWAL SYSTEM ---
         function openWithdrawModal(productId) {
             selectedProductIdForWithdraw = productId;
             const product = products.find(p => p.id === productId);
             if (!product) return;
-
             document.getElementById('modal-product-name').innerText = product.name;
             document.getElementById('modal-current-store').innerText = product.store;
             document.getElementById('modal-current-withdraw').innerText = product.withdrawToday;
             document.getElementById('modal-withdraw-amount').value = 1;
-
             document.getElementById('withdraw-modal').classList.remove('hidden');
         }
 
@@ -577,27 +539,13 @@
         }
 
         function confirmWithdraw() {
-            const amountInput = document.getElementById('modal-withdraw-amount');
-            const amount = parseInt(amountInput.value);
-
-            if (isNaN(amount) || amount <= 0) {
-                showToast('กรุณากรอกจำนวนเบิกให้ถูกต้อง', 'warning');
-                return;
-            }
-
+            const amount = parseInt(document.getElementById('modal-withdraw-amount').value);
+            if (isNaN(amount) || amount <= 0) { showToast('กรุณากรอกจำนวนเบิกให้ถูกต้อง', 'warning'); return; }
             const product = products.find(p => p.id === selectedProductIdForWithdraw);
             if (product) {
                 product.store += amount;
                 product.withdrawToday += amount;
-
-                const log = {
-                    time: new Date().toLocaleString('th-TH'),
-                    productName: product.name,
-                    amount: amount,
-                    afterWithdrawToday: product.withdrawToday
-                };
-                withdrawLogs.unshift(log);
-
+                withdrawLogs.unshift({ time: new Date().toLocaleString('th-TH'), productName: product.name, amount: amount, afterWithdrawToday: product.withdrawToday });
                 saveData();
                 renderProductTable();
                 renderWithdrawLogs();
@@ -609,65 +557,31 @@
 
         function renderWithdrawLogs() {
             const tbody = document.getElementById('withdraw-logs-body');
-            tbody.innerHTML = '';
-
-            if (withdrawLogs.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="4" class="p-6 text-center text-slate-400">ยังไม่มีประวัติการเบิกสินค้า</td></tr>`;
-                return;
-            }
-
+            tbody.innerHTML = withdrawLogs.length === 0 ? `<tr><td colspan="4" class="p-6 text-center text-slate-400">ยังไม่มีประวัติการเบิกสินค้า</td></tr>` : '';
             withdrawLogs.forEach(log => {
                 const tr = document.createElement('tr');
                 tr.className = "hover:bg-slate-50 border-b border-slate-100";
-                tr.innerHTML = `
-                    <td class="p-4 text-xs font-mono text-slate-500">${log.time}</td>
-                    <td class="p-4 font-semibold text-slate-800">${log.productName}</td>
-                    <td class="p-4 text-right font-bold text-emerald-600">+${log.amount}</td>
-                    <td class="p-4 text-right text-amber-600 font-medium">${log.afterWithdrawToday}</td>
-                `;
+                tr.innerHTML = `<td class="p-4 text-xs font-mono text-slate-500">${log.time}</td><td class="p-4 font-semibold text-slate-800">${log.productName}</td><td class="p-4 text-right font-bold text-emerald-600">+${log.amount}</td><td class="p-4 text-right text-amber-600 font-medium">${log.afterWithdrawToday}</td>`;
                 tbody.appendChild(tr);
             });
         }
 
-        // --- SALES CALCULATION (FORMULA: (ร้าน - ของเสีย - คงเหลือ) * ราคา) ---
         function calculateSingleSale(productId) {
             const product = products.find(p => p.id === productId);
             const remainInput = document.getElementById(`remain-input-${productId}`);
             const remainVal = parseInt(remainInput.value);
-
-            if (isNaN(remainVal) || remainVal < 0) {
-                showToast('กรุณากรอกจำนวนคงเหลือให้ถูกต้อง', 'warning');
-                return;
-            }
-
+            if (isNaN(remainVal) || remainVal < 0) { showToast('กรุณากรอกจำนวนคงเหลือให้ถูกต้อง', 'warning'); return; }
             const wasteQty = product.waste || 0;
             const availableToSell = product.store - wasteQty;
-
-            if (remainVal > availableToSell) {
-                showToast('จำนวนคงเหลือรวมกับของเสีย เกินกว่าจำนวนสินค้าที่มีในร้าน!', 'warning');
-                return;
-            }
-
+            if (remainVal > availableToSell) { showToast('จำนวนคงเหลือรวมกับของเสีย เกินกว่าจำนวนสินค้าในร้าน!', 'warning'); return; }
             const soldQty = availableToSell - remainVal;
             const totalPrice = soldQty * product.price;
-
-            // นำเลขคงเหลือมาวางแทนที่เลขในช่องร้านเดิม
             product.store = remainVal;
-            product.waste = 0; // รีเซ็ตของเสียหลังตัดยอด
+            product.waste = 0;
             remainInput.value = '';
-
             if (soldQty > 0 || wasteQty > 0) {
-                const reportItem = {
-                    id: Date.now(),
-                    time: new Date().toLocaleString('th-TH'),
-                    items: [{ name: product.name, sold: soldQty, waste: wasteQty, price: product.price, total: totalPrice }],
-                    totalQty: soldQty,
-                    totalWaste: wasteQty,
-                    totalMoney: totalPrice
-                };
-                salesReports.unshift(reportItem);
+                salesReports.unshift({ id: Date.now(), time: new Date().toLocaleString('th-TH'), items: [{ name: product.name, sold: soldQty, waste: wasteQty, price: product.price, total: totalPrice }], totalQty: soldQty, totalWaste: wasteQty, totalMoney: totalPrice });
             }
-
             saveData();
             renderProductTable();
             renderSalesReports();
@@ -676,62 +590,33 @@
         }
 
         function calculateAllSales() {
-            let totalSoldAll = 0;
-            let totalMoneyAll = 0;
-            let totalWasteAll = 0;
-            let reportItems = [];
-            let hasInput = false;
-
+            let totalSoldAll = 0, totalMoneyAll = 0, totalWasteAll = 0, reportItems = [], hasInput = false;
             products.forEach(product => {
                 const remainInput = document.getElementById(`remain-input-${product.id}`);
                 if (remainInput && remainInput.value !== '') {
                     const remainVal = parseInt(remainInput.value);
                     const wasteQty = product.waste || 0;
                     const availableToSell = product.store - wasteQty;
-
                     if (!isNaN(remainVal) && remainVal >= 0 && remainVal <= availableToSell) {
                         hasInput = true;
                         const soldQty = availableToSell - remainVal;
                         const totalPrice = soldQty * product.price;
-
                         if (soldQty > 0 || wasteQty > 0) {
                             totalSoldAll += soldQty;
                             totalMoneyAll += totalPrice;
                             totalWasteAll += wasteQty;
-
-                            reportItems.push({
-                                name: product.name,
-                                sold: soldQty,
-                                waste: wasteQty,
-                                price: product.price,
-                                total: totalPrice
-                            });
+                            reportItems.push({ name: product.name, sold: soldQty, waste: wasteQty, price: product.price, total: totalPrice });
                         }
-
                         product.store = remainVal;
                         product.waste = 0;
                         remainInput.value = '';
                     }
                 }
             });
-
-            if (!hasInput) {
-                showToast('กรุณากรอกช่องคงเหลืออย่างน้อย 1 รายการเพื่อตัดยอด', 'warning');
-                return;
-            }
-
+            if (!hasInput) { showToast('กรุณากรอกช่องคงเหลืออย่างน้อย 1 รายการเพื่อตัดยอด', 'warning'); return; }
             if (reportItems.length > 0) {
-                const report = {
-                    id: Date.now(),
-                    time: new Date().toLocaleString('th-TH'),
-                    items: reportItems,
-                    totalQty: totalSoldAll,
-                    totalWaste: totalWasteAll,
-                    totalMoney: totalMoneyAll
-                };
-                salesReports.unshift(report);
+                salesReports.unshift({ id: Date.now(), time: new Date().toLocaleString('th-TH'), items: reportItems, totalQty: totalSoldAll, totalWaste: totalWasteAll, totalMoney: totalMoneyAll });
             }
-
             saveData();
             renderProductTable();
             renderSalesReports();
@@ -741,32 +626,12 @@
 
         function renderSalesReports() {
             const tbody = document.getElementById('sales-reports-body');
-            tbody.innerHTML = '';
-
-            if (salesReports.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="4" class="p-6 text-center text-slate-400">ยังไม่มีรายการตัดยอดขาย</td></tr>`;
-                return;
-            }
-
+            tbody.innerHTML = salesReports.length === 0 ? `<tr><td colspan="4" class="p-6 text-center text-slate-400">ยังไม่มีรายการตัดยอดขาย</td></tr>` : '';
             salesReports.forEach(report => {
                 const tr = document.createElement('tr');
                 tr.className = "hover:bg-slate-50 border-b border-slate-100";
-
                 let itemsDetail = report.items.map(i => `${i.name}: ขาย ${i.sold} ชิ้น (เสีย ${i.waste || 0})`).join(', ');
-
-                tr.innerHTML = `
-                    <td class="p-4 text-xs font-mono text-slate-500">
-                        <div>${report.time}</div>
-                        <div class="text-[11px] text-slate-400 mt-1">${itemsDetail}</div>
-                    </td>
-                    <td class="p-4 font-semibold text-slate-700">${report.totalQty} ชิ้น</td>
-                    <td class="p-4 text-right font-bold text-emerald-600 text-base">${report.totalMoney.toLocaleString()} ฿</td>
-                    <td class="p-4 text-center">
-                        <button onclick="deleteReport(${report.id})" class="text-rose-500 hover:text-rose-700 text-xs p-1">
-                            <i class="fa-solid fa-trash-can"></i>
-                        </button>
-                    </td>
-                `;
+                tr.innerHTML = `<td class="p-4 text-xs font-mono text-slate-500"><div>${report.time}</div><div class="text-[11px] text-slate-400 mt-1">${itemsDetail}</div></td><td class="p-4 font-semibold text-slate-700">${report.totalQty} ชิ้น</td><td class="p-4 text-right font-bold text-emerald-600 text-base">${report.totalMoney.toLocaleString()} ฿</td><td class="p-4 text-center"><button onclick="deleteReport(${report.id})" class="text-rose-500 hover:text-rose-700 text-xs p-1"><i class="fa-solid fa-trash-can"></i></button></td>`;
                 tbody.appendChild(tr);
             });
         }
@@ -779,7 +644,6 @@
             showToast('ลบรายการรายงานเรียบร้อย', 'info');
         }
 
-        // --- UPDATE STATS CARDS ---
         function updateStats() {
             const totalMoney = salesReports.reduce((sum, r) => sum + r.totalMoney, 0);
             const totalItemsSold = salesReports.reduce((sum, r) => sum + r.totalQty, 0);
@@ -792,44 +656,26 @@
             document.getElementById('stat-waste-today').innerText = `${totalWasteToday.toLocaleString()} ชิ้น`;
         }
 
-        // --- TAB NAVIGATION ---
         function switchTab(tabName) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
             document.querySelectorAll('.tab-btn').forEach(btn => {
                 btn.classList.remove('bg-emerald-600', 'text-white', 'shadow-sm');
                 btn.classList.add('bg-white', 'text-slate-600', 'hover:bg-slate-50');
             });
-
             document.getElementById(`tab-${tabName}`).classList.remove('hidden');
             const activeBtn = document.getElementById(`tab-btn-${tabName}`);
             activeBtn.classList.remove('bg-white', 'text-slate-600', 'hover:bg-slate-50');
             activeBtn.classList.add('bg-emerald-600', 'text-white', 'shadow-sm');
         }
 
-        // --- TOAST NOTIFICATION ---
         function showToast(msg, type = 'success') {
             const toast = document.getElementById('toast');
-            const toastMsg = document.getElementById('toast-message');
-            const toastIcon = document.getElementById('toast-icon');
-
-            toastMsg.innerText = msg;
-
-            if (type === 'success') {
-                toastIcon.className = 'fa-solid fa-circle-check text-emerald-400 text-lg';
-            } else if (type === 'warning') {
-                toastIcon.className = 'fa-solid fa-triangle-exclamation text-amber-400 text-lg';
-            } else if (type === 'info') {
-                toastIcon.className = 'fa-solid fa-circle-info text-blue-400 text-lg';
-            }
-
+            document.getElementById('toast-message').innerText = msg;
+            document.getElementById('toast-icon').className = type === 'success' ? 'fa-solid fa-circle-check text-emerald-400 text-lg' : type === 'warning' ? 'fa-solid fa-triangle-exclamation text-amber-400 text-lg' : 'fa-solid fa-circle-info text-blue-400 text-lg';
             toast.classList.remove('translate-y-20', 'opacity-0', 'pointer-events-none');
-
-            setTimeout(() => {
-                toast.classList.add('translate-y-20', 'opacity-0', 'pointer-events-none');
-            }, 3000);
+            setTimeout(() => toast.classList.add('translate-y-20', 'opacity-0', 'pointer-events-none'), 3000);
         }
 
-        // --- APP INITIALIZATION ---
         window.onload = function() {
             loadData();
             checkAutoReset(false);
@@ -838,7 +684,6 @@
             renderWithdrawLogs();
             renderSalesReports();
             updateStats();
-
             setInterval(updateClock, 1000);
         };
     </script>
