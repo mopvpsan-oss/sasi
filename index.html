@@ -10,7 +10,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Google Font Prompt -->
     <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <!-- Firebase SDK (Version 9 Compat for Easy Global Sync) -->
+    <!-- Firebase SDK (Version 9 Compat) -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
     <style>
@@ -51,7 +51,7 @@
     <!-- Main Content Container -->
     <main class="max-w-7xl mx-auto w-full px-4 py-6 flex-grow space-y-6">
 
-        <!-- Stat Cards -->
+        <!-- Stat Cards (จะรีเซ็ต 09:00 น. อัตโนมัติทุกวัน) -->
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200/80 flex items-center justify-between">
                 <div>
@@ -309,7 +309,6 @@
         const PIN_CODE = "198444";
         let pendingAction = null;
 
-        // 👇 ใส่ค่า firebaseConfig จากภาพของคุณเรียบร้อยแล้ว 👇
         const firebaseConfig = {
             apiKey: "AIzaSyD8XOZUorFbWMØsqur2IgV-n6Nar92syes",
             authDomain: "sasi-stock.firebaseapp.com",
@@ -321,7 +320,6 @@
             measurementId: "G-73DVZW271Z"
         };
 
-        // Initialize Firebase Realtime Database
         let db = null;
         try {
             firebase.initializeApp(firebaseConfig);
@@ -425,6 +423,34 @@
             checkAutoReset();
         }
 
+        // คำนวณช่วงวันทำงาน (รอบ 09:00 น. ของวันนี้ ถึง 09:00 น. ของวันพรุ่งนี้)
+        function getBusinessCycleTimeRange() {
+            const now = new Date();
+            let start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 9, 0, 0);
+            if (now < start) {
+                start.setDate(start.getDate() - 1);
+            }
+            let end = new Date(start);
+            end.setDate(end.getDate() + 1);
+            return { start, end };
+        }
+
+        function parseTimestamp(timeStr) {
+            if (!timeStr) return new Date(0);
+            const parts = timeStr.split(' ');
+            if (parts.length < 2) return new Date(0);
+            const dateParts = parts[0].split('/');
+            const timeParts = parts[1].split(':');
+            if (dateParts.length === 3 && timeParts.length >= 2) {
+                let day = parseInt(dateParts[0]);
+                let month = parseInt(dateParts[1]) - 1;
+                let year = parseInt(dateParts[2]);
+                if (year > 2500) year -= 543; // แปลง พ.ศ. เป็น ค.ศ.
+                return new Date(year, month, day, parseInt(timeParts[0]), parseInt(timeParts[1]), parseInt(timeParts[2] || 0));
+            }
+            return new Date(0);
+        }
+
         function checkAutoReset(manualTrigger = false) {
             const now = new Date();
             const todayStr = now.toDateString();
@@ -435,7 +461,7 @@
                     resetDailyWithdrawals();
                     lastResetDate = todayStr;
                     syncToFirebase();
-                    showToast('รีเซ็ตยอดเบิกประจำวัน (09:00 น.) เรียบร้อยแล้ว', 'info');
+                    showToast('รีเซ็ตยอดประจำวัน (09:00 น.) เรียบร้อยแล้ว', 'info');
                 }
             }
             updateStats();
@@ -464,7 +490,7 @@
         function verifyPinAndExecute() {
             if (document.getElementById('pin-input').value === PIN_CODE) {
                 closePinModal();
-                if (pendingAction === 'resetDailyWithdraw') { resetDailyWithdrawals(); showToast('รีเซ็ตยอดเบิกประจำวันเรียบร้อย', 'success'); }
+                if (pendingAction === 'resetDailyWithdraw') { resetDailyWithdrawals(); showToast('รีเซ็ตยอดประจำวันเรียบร้อย', 'success'); }
                 else if (pendingAction === 'clearWithdrawLogs') { withdrawLogs = []; syncToFirebase(); renderWithdrawLogs(); showToast('ล้างประวัติการเบิกเรียบร้อย', 'success'); }
                 else if (pendingAction === 'clearSalesReports') { salesReports = []; syncToFirebase(); renderSalesReports(); updateStats(); showToast('ล้างรายงานยอดขายเรียบร้อย', 'success'); }
             } else {
@@ -667,11 +693,20 @@
             showToast('ลบรายการรายงานเรียบร้อย', 'info');
         }
 
+        // --- UPDATE STATS CARDS (กรองเฉพาะยอดประจำวัน 09:00 น. ถึง 09:00 น. ของวันถัดไป) ---
         function updateStats() {
-            const totalMoney = salesReports.reduce((sum, r) => sum + r.totalMoney, 0);
-            const totalItemsSold = salesReports.reduce((sum, r) => sum + r.totalQty, 0);
+            const { start, end } = getBusinessCycleTimeRange();
+
+            // กรองเฉพาะรายงานยอดขายที่เกิดขึ้นในรอบ 9 โมงเช้าของวันนี้
+            const todayReports = salesReports.filter(r => {
+                const reportDate = parseTimestamp(r.time);
+                return reportDate >= start && reportDate < end;
+            });
+
+            const totalMoney = todayReports.reduce((sum, r) => sum + r.totalMoney, 0);
+            const totalItemsSold = todayReports.reduce((sum, r) => sum + r.totalQty, 0);
             const totalWithdrawToday = products.reduce((sum, p) => sum + p.withdrawToday, 0);
-            const totalWasteToday = products.reduce((sum, p) => sum + (p.waste || 0), 0) + salesReports.reduce((sum, r) => sum + (r.totalWaste || 0), 0);
+            const totalWasteToday = products.reduce((sum, p) => sum + (p.waste || 0), 0) + todayReports.reduce((sum, r) => sum + (r.totalWaste || 0), 0);
 
             document.getElementById('stat-daily-sales').innerText = `${totalMoney.toLocaleString()} ฿`;
             document.getElementById('stat-items-sold').innerText = `${totalItemsSold.toLocaleString()} ชิ้น`;
