@@ -51,7 +51,7 @@
     <!-- Main Content Container -->
     <main class="max-w-7xl mx-auto w-full px-4 py-6 flex-grow space-y-6">
 
-        <!-- Stat Cards (จะรีเซ็ต 09:00 น. อัตโนมัติทุกวัน) -->
+        <!-- Stat Cards -->
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200/80 flex items-center justify-between">
                 <div>
@@ -361,14 +361,16 @@
             { id: 's21', name: 'ถุง 8x16', stock: 0, unit: 'แพ็ค' }
         ];
 
-        let products = [];
-        let supplies = [];
+        let products = DEFAULT_PRODUCTS;
+        let supplies = DEFAULT_SUPPLIES;
         let withdrawLogs = [];
         let salesReports = [];
         let lastResetDate = null;
         let selectedProductIdForWithdraw = null;
+        let isDataLoaded = false;
 
         function syncToFirebase() {
+            if (!isDataLoaded) return; // ป้องกันการเขียนทับข้อมูลก่อนโหลดเสร็จ
             const dataState = { products, supplies, withdrawLogs, salesReports, lastResetDate };
             if (db) {
                 db.ref('stock_data').set(dataState);
@@ -386,15 +388,24 @@
                         withdrawLogs = val.withdrawLogs || [];
                         salesReports = val.salesReports || [];
                         lastResetDate = val.lastResetDate || null;
-
-                        renderProductTable();
-                        renderSupplyTable();
-                        renderWithdrawLogs();
-                        renderSalesReports();
-                        updateStats();
                     } else {
-                        syncToFirebase();
+                        // ถ้าบน Firebase ยังไม่มีข้อมูล ให้ลองดึงจาก Local Backup ก่อน
+                        const local = localStorage.getItem('sasi_local_backup');
+                        if (local) {
+                            const parsed = JSON.parse(local);
+                            products = parsed.products || DEFAULT_PRODUCTS;
+                            supplies = parsed.supplies || DEFAULT_SUPPLIES;
+                            withdrawLogs = parsed.withdrawLogs || [];
+                            salesReports = parsed.salesReports || [];
+                            lastResetDate = parsed.lastResetDate || null;
+                        }
                     }
+                    isDataLoaded = true;
+                    renderProductTable();
+                    renderSupplyTable();
+                    renderWithdrawLogs();
+                    renderSalesReports();
+                    updateStats();
                 });
             } else {
                 const local = localStorage.getItem('sasi_local_backup');
@@ -405,10 +416,8 @@
                     withdrawLogs = parsed.withdrawLogs || [];
                     salesReports = parsed.salesReports || [];
                     lastResetDate = parsed.lastResetDate || null;
-                } else {
-                    products = DEFAULT_PRODUCTS;
-                    supplies = DEFAULT_SUPPLIES;
                 }
+                isDataLoaded = true;
                 renderProductTable();
                 renderSupplyTable();
                 renderWithdrawLogs();
@@ -423,7 +432,6 @@
             checkAutoReset();
         }
 
-        // คำนวณช่วงวันทำงาน (รอบ 09:00 น. ของวันนี้ ถึง 09:00 น. ของวันพรุ่งนี้)
         function getBusinessCycleTimeRange() {
             const now = new Date();
             let start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 9, 0, 0);
@@ -445,7 +453,7 @@
                 let day = parseInt(dateParts[0]);
                 let month = parseInt(dateParts[1]) - 1;
                 let year = parseInt(dateParts[2]);
-                if (year > 2500) year -= 543; // แปลง พ.ศ. เป็น ค.ศ.
+                if (year > 2500) year -= 543;
                 return new Date(year, month, day, parseInt(timeParts[0]), parseInt(timeParts[1]), parseInt(timeParts[2] || 0));
             }
             return new Date(0);
@@ -693,11 +701,8 @@
             showToast('ลบรายการรายงานเรียบร้อย', 'info');
         }
 
-        // --- UPDATE STATS CARDS (กรองเฉพาะยอดประจำวัน 09:00 น. ถึง 09:00 น. ของวันถัดไป) ---
         function updateStats() {
             const { start, end } = getBusinessCycleTimeRange();
-
-            // กรองเฉพาะรายงานยอดขายที่เกิดขึ้นในรอบ 9 โมงเช้าของวันนี้
             const todayReports = salesReports.filter(r => {
                 const reportDate = parseTimestamp(r.time);
                 return reportDate >= start && reportDate < end;
